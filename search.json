@@ -1,0 +1,107 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Dippa",
+    "section": "",
+    "text": "A from-scratch Python rebuild of published Warren-Averbach and (modified) Williamson-Hall peak-profile methods, currently in pre-alpha: the packaging and I/O scaffold exists, the fitting and analysis logic does not yet."
+  },
+  {
+    "objectID": "index.html#status",
+    "href": "index.html#status",
+    "title": "Dippa",
+    "section": "Status",
+    "text": "Status\nThis site describes a project in progress, not a released tool. Nothing here has been validated for real analysis. See the source audit for what has actually been inspected in the original MATLAB codebase, and the roadmap for what’s deliberately excluded from v0.1 and why."
+  },
+  {
+    "objectID": "index.html#origin",
+    "href": "index.html#origin",
+    "title": "Dippa",
+    "section": "Origin",
+    "text": "Origin\nDippa rebuilds ThomasHSimm/DPPA, a MATLAB GUI tool developed during and after a PhD in materials science, implementing methods from:\n\nT.H. Simm, P.J. Withers, J. Quinta da Fonseca, An evaluation of diffraction peak profile analysis (DPPA) methods to study plastically deformed metals, Materials & Design 111 (2016) 331–343. doi:10.1016/j.matdes.2016.08.091\nT.H. Simm, P.J. Withers, J. Quinta da Fonseca, Peak broadening anisotropy in deformed face-centred cubic and hexagonal close-packed alloys, J. Appl. Cryst. 47(5) (2014) 1535–1551. doi:10.1107/S1600576714015751\n\n\n\n\n\n\n\nNoteWhy not just keep using the MATLAB version?\n\n\n\n\n\nThe original tool works and remains available, unchanged, at ThomasHSimm/DPPA. It has no automated tests, mixes fitting logic with GUI callbacks, depends on the current working directory for file locations, and implements sample-vs-instrument and cubic-vs-HCP handling as separate copy-pasted code paths rather than as parameters. Dippa’s goal is a package where the scientific core is callable and testable independent of any GUI, matching the original’s published methods but not its implementation structure."
+  },
+  {
+    "objectID": "audit.html",
+    "href": "audit.html",
+    "title": "Source audit",
+    "section": "",
+    "text": "This audit is based on reading the actual dippa_v3.zip source pulled from ThomasHSimm/DPPA, plus loading its bundled .mat reference files, rather than on the original repository’s documentation or memory of the codebase."
+  },
+  {
+    "objectID": "audit.html#inventory",
+    "href": "audit.html#inventory",
+    "title": "Source audit",
+    "section": "Inventory",
+    "text": "Inventory\n197 files: 80 .m, 34 .mat, 55 .png, 15 .html, 3 .fig, 2 .pl (UDF format converters), plus example data files. Two entry points match the original README’s documented workflow — BIGdippa.m (165 KB, peak fitting) then dippaFC.m (85 KB, Fourier/Williamson-Hall analysis on BIGdippa’s output). 34 of the 80 .m files build file paths from cd (MATLAB’s current directory), which is why the app can’t currently be scripted or tested headlessly without changes."
+  },
+  {
+    "objectID": "audit.html#the-aa-aabcg-parameter-arrays",
+    "href": "audit.html#the-aa-aabcg-parameter-arrays",
+    "title": "Source audit",
+    "section": "The aa / aabcg parameter arrays",
+    "text": "The aa / aabcg parameter arrays\nLoaded directly from the bundled 0. variables/fit.mat:\n\n\n\n\n\n\n\n\nVariable\nShape\nMeaning\n\n\n\n\naa\n(6, 11)\n10 peaks (columns 0–9) + 1 shared background column (column 10, quadratic: c0 + c1·x + c2·x²). 6 rows because this example uses the asymmetric peak variant.\n\n\naabcg\n(2, 10)\nPer-peak local background offset/slope, separate from the shared background in aa.\n\n\naa_I / aabcg_I\nsame shapes\nSame structure, for the instrumental-standard fit — stored in a completely separate file (fit_I.mat), confirming sample and instrument code paths are duplicated rather than parameterised.\n\n\n\n\n\n\n\n\n\nNoteGlossary: peak model parameters\n\n\n\n\n\n\nPosition, intensity, width, shape — the four core pseudo-Voigt parameters per peak (pk_voigt2.m).\nAsymmetric variant — a 6-parameter peak shape (pk_alpha_asymm.m) used when peaks aren’t symmetric about their centre; adds a second width/shape pair.\nKα1/Kα2 doublet — X-ray tubes emit two close wavelengths; pk_alpha.m fits them as one peak with a fixed intensity/position relationship derived from the tube’s known wavelengths, rather than as two independent peaks."
+  },
+  {
+    "objectID": "audit.html#profile-function-and-known-limitation",
+    "href": "audit.html#profile-function-and-known-limitation",
+    "title": "Source audit",
+    "section": "Profile function and known limitation",
+    "text": "Profile function and known limitation\npv_tv_aa.m sums pseudo-Voigt peaks plus a shared quadratic background. Peak shape and the Kα1/Kα2 doublet are handled in pk_alpha.m, which hardcodes wavelengths for three tubes only:\n\n\n\nTube\nλα1 (Å)\nλα2 (Å)\n\n\n\n\nCu\n1.54056\n1.54439\n\n\nCo\n1.789010\n1.792900\n\n\nFe\n1.93604\n1.93998\n\n\n\nAnything else falls through with no explicit error. A port should take wavelength as an explicit input, with these three pairs as one built-in table among others, rather than reproducing the tube-name lookup as the only path."
+  },
+  {
+    "objectID": "audit.html#williamson-hall-implementation",
+    "href": "audit.html#williamson-hall-implementation",
+    "title": "Source audit",
+    "section": "Williamson-Hall implementation",
+    "text": "Williamson-Hall implementation\ngetWH.m implements modified Williamson-Hall (contrast-factor weighted), matching the standard Ungár/Borbély formulation:\nC = Aest * (1 - q*H2)\nX = g .* sqrt(C)\nfit to one of three selectable forms — linear (size + strain·X), root-sum-square (sqrt(size² + strain²·X²)), or quadratic-in-X (size + strain·X²). This is a known, citable method, not an idiosyncratic one — useful confirmation for anyone deciding whether a Python port is worth trusting."
+  },
+  {
+    "objectID": "audit.html#two-independent-duplication-axes",
+    "href": "audit.html#two-independent-duplication-axes",
+    "title": "Source audit",
+    "section": "Two independent duplication axes",
+    "text": "Two independent duplication axes\nBeyond the sample/instrument duplication above, six files are _HCP-suffixed near-copies of their cubic-symmetry counterparts (getWH_HCP.m, contrastHCP.m, and four others). Symmetry handling and sample/instrument handling are each implemented as separate copy-pasted branches. Representing both as data rather than as which function you call removes both axes in one design decision — likely the single highest-value structural change a port makes over the original."
+  },
+  {
+    "objectID": "audit.html#reproducibility-of-this-audit",
+    "href": "audit.html#reproducibility-of-this-audit",
+    "title": "Source audit",
+    "section": "Reproducibility of this audit",
+    "text": "Reproducibility of this audit\nAnyone can repeat this: dippa_v3.zip is public and MIT-licensed at ThomasHSimm/DPPA. The .mat inspection used scipy.io.loadmat on the bundled 0. variables/fit.mat and genset.mat. No proprietary or unpublished data was used.\nThe full write-up, including MATLAB global-vs-preference-store inconsistencies and a short landscape check, is in AUDIT.md in the repository root."
+  },
+  {
+    "objectID": "roadmap.html",
+    "href": "roadmap.html",
+    "title": "Roadmap",
+    "section": "",
+    "text": "The biggest risk flagged during scoping was building everything at once — full CMWP-equivalent scope, all symmetries, GUI, and packaging in one pass. This page exists to make the narrower scope explicit and keep it that way."
+  },
+  {
+    "objectID": "roadmap.html#not-yet-started",
+    "href": "roadmap.html#not-yet-started",
+    "title": "Roadmap",
+    "section": "Not yet started",
+    "text": "Not yet started\nNo fitting or analysis logic has been ported. Current state is: packaging scaffold, CI, and a loader for the legacy .mat state files (I/O only, no fitting math). See the source audit for what’s been inspected."
+  },
+  {
+    "objectID": "roadmap.html#proposed-v0.1-scope",
+    "href": "roadmap.html#proposed-v0.1-scope",
+    "title": "Roadmap",
+    "section": "Proposed v0.1 scope",
+    "text": "Proposed v0.1 scope\n\nCubic symmetry only (no HCP).\nSample fitting only (no instrumental-correction UI in the core package).\nPseudo-Voigt peak fitting matching the original pv_tv_aa / pk_alpha behaviour, including Kα1/Kα2 doublet handling for Cu/Co/Fe.\nModified Williamson-Hall analysis (getWH.m’s three variants).\nOne worked example from the original tool’s bundled reference data, reproduced within a documented numerical tolerance.\nNo GUI."
+  },
+  {
+    "objectID": "roadmap.html#deliberately-excluded-from-v0.1",
+    "href": "roadmap.html#deliberately-excluded-from-v0.1",
+    "title": "Roadmap",
+    "section": "Deliberately excluded from v0.1",
+    "text": "Deliberately excluded from v0.1\nEach of these was excluded not because it’s hard, but because each one adds a code path that needs its own parity check against the original MATLAB output before it can be trusted:\n\nWarren-Averbach Fourier analysis (dippaFC.m / FourierFunctions/).\nHCP / anisotropic contrast factors.\nInstrumental-standard deconvolution.\nAny GUI (interactive fitting is real scientific-judgement territory — see the note below — but comes after the core is trustworthy on its own).\nAnything resembling CMWP or Rietveld refinement.\n\n\n\n\n\n\n\nNoteWhy a GUI at all, eventually\n\n\n\n\n\nPeak-profile fitting isn’t always a fully automatic optimisation problem — choosing a fit range, deciding whether a peak overlaps another phase, judging whether a converged fit is physically credible are expert decisions the original GUI captured. The intended design keeps that judgement in an optional interactive layer that edits a config and calls the same core functions used programmatically, rather than reimplementing fitting math inside GUI callbacks the way the original does."
+  },
+  {
+    "objectID": "roadmap.html#parity-testing-approach",
+    "href": "roadmap.html#parity-testing-approach",
+    "title": "Roadmap",
+    "section": "Parity-testing approach",
+    "text": "Parity-testing approach\nBefore any fitting code is considered done, its output gets compared against the real .mat reference files bundled in the original repo (SS316_logINDI_RES.mat, SSnew_interpBCG_fit.mat, and the files under 4. RES/), not against synthetic data alone. This is slower than writing code first and checking later, deliberately — the goal is a package that reproduces known-good numbers, not one that merely runs."
+  }
+]
