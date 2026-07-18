@@ -1,0 +1,50 @@
+cff-version: 1.2.0
+message: >-
+  This package has no citable release yet. If you use it, please cite the
+  original DPPA methods papers below until a package-specific Zenodo DOI
+  exists.
+title: Dippa
+type: software
+authors:
+  - family-names: Simm
+    given-names: Thomas H.
+repository-code: "https://github.com/ThomasHSimm/dippa"
+url: "https://thomashsimm.github.io/dippa"
+license: MIT
+preferred-citation:
+  type: article
+  authors:
+    - family-names: Simm
+      given-names: Thomas H.
+    - family-names: Withers
+      given-names: Philip J.
+    - family-names: Quinta da Fonseca
+      given-names: João
+  title: >-
+    An evaluation of diffraction peak profile analysis (DPPA) methods to
+    study plastically deformed metals
+  journal: Materials & Design
+  volume: 111
+  start: 331
+  end: 343
+  year: 2016
+  doi: 10.1016/j.matdes.2016.08.091
+references:
+  - type: article
+    authors:
+      - family-names: Simm
+        given-names: Thomas H.
+      - family-names: Withers
+        given-names: Philip J.
+      - family-names: Quinta da Fonseca
+        given-names: João
+    title: >-
+      Peak broadening anisotropy in deformed face-centred cubic and
+      hexagonal close-packed alloys
+    journal: Journal of Applied Crystallography
+    volume: 47
+    issue: 5
+    start: 1535
+    end: 1551
+    year: 2014
+    doi: 10.1107/S1600576714015751

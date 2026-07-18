@@ -1,0 +1,61 @@
+---
+title: "Roadmap"
+subtitle: "What v0.1 includes, what's deliberately deferred, and why"
+---
+
+::: {.lead}
+The biggest risk flagged during scoping was building everything at once —
+full CMWP-equivalent scope, all symmetries, GUI, and packaging in one pass.
+This page exists to make the narrower scope explicit and keep it that way.
+:::
+
+## Not yet started
+
+No fitting or analysis logic has been ported. Current state is: packaging
+scaffold, CI, and a loader for the legacy `.mat` state files (I/O only, no
+fitting math). See the [source audit](audit.qmd) for what's been inspected.
+
+## Proposed v0.1 scope
+
+- Cubic symmetry only (no HCP).
+- Sample fitting only (no instrumental-correction UI in the core package).
+- Pseudo-Voigt peak fitting matching the original `pv_tv_aa` / `pk_alpha`
+  behaviour, including Kα1/Kα2 doublet handling for Cu/Co/Fe.
+- Modified Williamson-Hall analysis (`getWH.m`'s three variants).
+- One worked example from the original tool's bundled reference data,
+  reproduced within a documented numerical tolerance.
+- No GUI.
+
+## Deliberately excluded from v0.1
+
+Each of these was excluded not because it's hard, but because each one adds
+a code path that needs its own parity check against the original MATLAB
+output before it can be trusted:
+
+- Warren-Averbach Fourier analysis (`dippaFC.m` / `FourierFunctions/`).
+- HCP / anisotropic contrast factors.
+- Instrumental-standard deconvolution.
+- Any GUI (interactive fitting is real scientific-judgement territory —
+  see the note below — but comes after the core is trustworthy on its own).
+- Anything resembling CMWP or Rietveld refinement.
+
+::: {.callout-note collapse="true"}
+## Why a GUI at all, eventually
+
+Peak-profile fitting isn't always a fully automatic optimisation problem —
+choosing a fit range, deciding whether a peak overlaps another phase,
+judging whether a converged fit is physically credible are expert
+decisions the original GUI captured. The intended design keeps that
+judgement in an optional interactive layer that edits a config and calls
+the same core functions used programmatically, rather than reimplementing
+fitting math inside GUI callbacks the way the original does.
+:::
+
+## Parity-testing approach
+
+Before any fitting code is considered done, its output gets compared
+against the real `.mat` reference files bundled in the original repo
+(`SS316_logINDI_RES.mat`, `SSnew_interpBCG_fit.mat`, and the files under
+`4. RES/`), not against synthetic data alone. This is slower than writing
+code first and checking later, deliberately — the goal is a package that
+reproduces known-good numbers, not one that merely runs.

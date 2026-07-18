@@ -1,0 +1,46 @@
+---
+title: "Dippa"
+subtitle: "Diffraction peak profile analysis in Python"
+---
+
+::: {.lead}
+A from-scratch Python rebuild of published Warren-Averbach and (modified)
+Williamson-Hall peak-profile methods, currently in pre-alpha: the packaging
+and I/O scaffold exists, the fitting and analysis logic does not yet.
+:::
+
+## Status
+
+This site describes a project in progress, not a released tool. Nothing
+here has been validated for real analysis. See the [source
+audit](audit.qmd) for what has actually been inspected in the original
+MATLAB codebase, and the [roadmap](roadmap.qmd) for what's deliberately
+excluded from v0.1 and why.
+
+## Origin
+
+Dippa rebuilds [ThomasHSimm/DPPA](https://github.com/ThomasHSimm/DPPA), a
+MATLAB GUI tool developed during and after a PhD in materials science,
+implementing methods from:
+
+- T.H. Simm, P.J. Withers, J. Quinta da Fonseca, *An evaluation of
+  diffraction peak profile analysis (DPPA) methods to study plastically
+  deformed metals*, Materials & Design 111 (2016) 331–343.
+  [doi:10.1016/j.matdes.2016.08.091](https://doi.org/10.1016/j.matdes.2016.08.091)
+- T.H. Simm, P.J. Withers, J. Quinta da Fonseca, *Peak broadening anisotropy
+  in deformed face-centred cubic and hexagonal close-packed alloys*, J. Appl.
+  Cryst. 47(5) (2014) 1535–1551.
+  [doi:10.1107/S1600576714015751](https://doi.org/10.1107/S1600576714015751)
+
+::: {.callout-note collapse="true"}
+## Why not just keep using the MATLAB version?
+
+The original tool works and remains available, unchanged, at
+[ThomasHSimm/DPPA](https://github.com/ThomasHSimm/DPPA). It has no automated
+tests, mixes fitting logic with GUI callbacks, depends on the current
+working directory for file locations, and implements sample-vs-instrument
+and cubic-vs-HCP handling as separate copy-pasted code paths rather than as
+parameters. Dippa's goal is a package where the scientific core is callable
+and testable independent of any GUI, matching the original's published
+methods but not its implementation structure.
+:::

@@ -1,0 +1,34 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "Dippa"
+  description: "Diffraction peak profile analysis in Python"
+  site-url: "https://thomashsimm.github.io/dippa"
+  repo-url: "https://github.com/ThomasHSimm/dippa"
+  repo-actions: [issue]
+  navbar:
+    left:
+      - href: index.qmd
+        text: Overview
+      - href: audit.qmd
+        text: Source audit
+      - href: roadmap.qmd
+        text: Roadmap
+    right:
+      - icon: github
+        href: https://github.com/ThomasHSimm/dippa
+  page-footer:
+    left: "Dippa is a from-scratch Python reimplementation of published DPPA methods, not an official CMWP-family tool."
+    right: "MIT licensed"
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    code-fold: false
+    css: styles.css
+
+execute:
+  freeze: auto

@@ -1,0 +1,110 @@
+---
+title: "Source audit"
+subtitle: "What was actually found by inspecting the original MATLAB source"
+---
+
+::: {.lead}
+This audit is based on reading the actual `dippa_v3.zip` source pulled from
+[ThomasHSimm/DPPA](https://github.com/ThomasHSimm/DPPA), plus loading its
+bundled `.mat` reference files, rather than on the original repository's
+documentation or memory of the codebase.
+:::
+
+::: {.callout-important}
+## Methodological, not operational
+
+This audit describes what the *code* does — file structure, data shapes,
+which equations are implemented. It does not independently verify that the
+underlying physics or fitting behaviour is correct; that's the job of the
+parity-testing step described in the [roadmap](roadmap.qmd), which hasn't
+happened yet.
+:::
+
+## Inventory
+
+197 files: 80 `.m`, 34 `.mat`, 55 `.png`, 15 `.html`, 3 `.fig`, 2 `.pl`
+(UDF format converters), plus example data files. Two entry points match
+the original README's documented workflow — `BIGdippa.m` (165 KB, peak
+fitting) then `dippaFC.m` (85 KB, Fourier/Williamson-Hall analysis on
+`BIGdippa`'s output). 34 of the 80 `.m` files build file paths from `cd`
+(MATLAB's current directory), which is why the app can't currently be
+scripted or tested headlessly without changes.
+
+## The `aa` / `aabcg` parameter arrays
+
+Loaded directly from the bundled `0. variables/fit.mat`:
+
+| Variable | Shape | Meaning |
+|---|---|---|
+| `aa` | `(6, 11)` | 10 peaks (columns 0–9) + 1 shared background column (column 10, quadratic: `c0 + c1·x + c2·x²`). 6 rows because this example uses the asymmetric peak variant. |
+| `aabcg` | `(2, 10)` | Per-peak local background offset/slope, separate from the shared background in `aa`. |
+| `aa_I` / `aabcg_I` | same shapes | Same structure, for the instrumental-standard fit — stored in a completely separate file (`fit_I.mat`), confirming sample and instrument code paths are duplicated rather than parameterised. |
+
+::: {.callout-note collapse="true"}
+## Glossary: peak model parameters
+
+- **Position, intensity, width, shape** — the four core pseudo-Voigt
+  parameters per peak (`pk_voigt2.m`).
+- **Asymmetric variant** — a 6-parameter peak shape (`pk_alpha_asymm.m`)
+  used when peaks aren't symmetric about their centre; adds a second
+  width/shape pair.
+- **Kα1/Kα2 doublet** — X-ray tubes emit two close wavelengths; `pk_alpha.m`
+  fits them as one peak with a fixed intensity/position relationship
+  derived from the tube's known wavelengths, rather than as two
+  independent peaks.
+:::
+
+## Profile function and known limitation
+
+`pv_tv_aa.m` sums pseudo-Voigt peaks plus a shared quadratic background.
+Peak shape and the Kα1/Kα2 doublet are handled in `pk_alpha.m`, which
+hardcodes wavelengths for three tubes only:
+
+| Tube | λα1 (Å) | λα2 (Å) |
+|---|---|---|
+| Cu | 1.54056 | 1.54439 |
+| Co | 1.789010 | 1.792900 |
+| Fe | 1.93604 | 1.93998 |
+
+Anything else falls through with no explicit error. A port should take
+wavelength as an explicit input, with these three pairs as one built-in
+table among others, rather than reproducing the tube-name lookup as the
+only path.
+
+## Williamson-Hall implementation
+
+`getWH.m` implements **modified** Williamson-Hall (contrast-factor
+weighted), matching the standard Ungár/Borbély formulation:
+
+```
+C = Aest * (1 - q*H2)
+X = g .* sqrt(C)
+```
+
+fit to one of three selectable forms — linear (`size + strain·X`),
+root-sum-square (`sqrt(size² + strain²·X²)`), or quadratic-in-X
+(`size + strain·X²`). This is a known, citable method, not an
+idiosyncratic one — useful confirmation for anyone deciding whether a
+Python port is worth trusting.
+
+## Two independent duplication axes
+
+Beyond the sample/instrument duplication above, six files are `_HCP`-suffixed
+near-copies of their cubic-symmetry counterparts (`getWH_HCP.m`,
+`contrastHCP.m`, and four others). Symmetry handling and sample/instrument
+handling are each implemented as separate copy-pasted branches. Representing
+both as data rather than as which function you call removes both axes in
+one design decision — likely the single highest-value structural change a
+port makes over the original.
+
+## Reproducibility of this audit
+
+Anyone can repeat this: `dippa_v3.zip` is public and MIT-licensed at
+[ThomasHSimm/DPPA](https://github.com/ThomasHSimm/DPPA). The `.mat`
+inspection used `scipy.io.loadmat` on the bundled `0. variables/fit.mat`
+and `genset.mat`. No proprietary or unpublished data was used.
+
+The full write-up, including MATLAB `global`-vs-preference-store
+inconsistencies and a short landscape check, is in
+[`AUDIT.md`](https://github.com/ThomasHSimm/dippa/blob/main/AUDIT.md) in
+the repository root.
