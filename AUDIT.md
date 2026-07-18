@@ -169,7 +169,42 @@ New, not previously known from the handover doc alone:
   own "agreed approach" calls for as step 1. Treat the "field hasn't moved"
   conclusion as provisionally supported, not confirmed.
 
-## 9. Immediate implication for scope
+## 9. Profile function ported and parity-verified (2026-07-18)
+
+`pv_tv_aa`/`pk_alpha_asymm`/`pk_voigt2asymm` are now ported to
+`src/dippa/profiles.py`. Verified against the bundled reference `fit.mat`
+and `data.mat`, not just re-derived from reading the source: evaluating the
+ported function at the real saved fit parameters against the real measured
+pattern gives **R² = 0.994**, with the largest residuals attributable to
+genuine counting-statistics scatter near the peak tops, not a systematic
+model error.
+
+**New finding, not previously known:** getting to R² = 0.994 required
+*not* applying the Kα1/Kα2 doublet, even though this dataset's bundled
+`genset.mat` has `alpha2 = 0`, which in the original tool's inverted
+preference convention (`alpha2 == 0` means "do fit the doublet") implies
+the doublet should be applied. Applying it anyway gives R² = 0.73, with
+large, systematic residuals to the right of every peak centre (the doublet
+component adds spurious intensity there). This means `genset.mat`'s
+settings cannot be assumed to reflect the state the tool was actually in
+when a given `fit.mat` was produced — these are independent files, and the
+preference is read live from the GUI at evaluation time, not stored
+per-fit. Any future parity check against a bundled `.mat` pair should
+verify the doublet assumption empirically (try both, keep whichever
+reproduces the pattern) rather than trusting the adjacent settings file.
+This is now pinned by `test_parity_with_doublet_is_much_worse` in
+`tests/test_profiles.py`, specifically so a future "fix" back to trusting
+`genset.mat` can't silently regress this.
+
+This also settles part of audit question 1 from §7 of this document
+(`onepeak.m` vs `pv_tv_aa.m`): plotting (`pv_tv_aa.m`) is now confirmed
+correct against real data. Whether `onepeak.m`'s fitting path uses
+numerically identical logic is still open and is the next thing to check
+before trusting a from-scratch fit rather than a forward-model evaluation
+at already-known parameters.
+
+
+## 10. Immediate implication for scope
 
 The handover doc's own risk section (§16.1) warns against building
 everything at once. Given the real duplication pattern found here, the

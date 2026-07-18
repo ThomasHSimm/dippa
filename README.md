@@ -57,6 +57,17 @@ Full docs, including the [source audit](./AUDIT.md) and
 [thomashsimm.github.io/dippa](https://thomashsimm.github.io/dippa) (once
 the first `docs/**` change lands on `main`).
 
+## Examples
+
+`notebooks/01_profiles_walkthrough.ipynb` — a runnable walkthrough of the
+peak-shape functions, including the real parity check against the original
+tool's own saved output, plotted. Requires the `examples` extra:
+
+```bash
+pip install -e ".[examples]"
+jupyter notebook notebooks/
+```
+
 ## Development
 
 ```bash
