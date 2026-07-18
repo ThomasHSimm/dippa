@@ -1,6 +1,10 @@
-# CLAUDE.md
+# AGENTS.md
 
-Context for any agentic coding tool (Claude Code, Codex) picking this up.
+Context for any agentic coding tool (Claude Code, Codex, or otherwise) picking
+this up. Read by Codex CLI natively; Claude Code reads it as additional
+context too, so this is the single source of truth rather than a
+Codex-specific duplicate of anything else.
+
 Read this before making changes — several decisions here came from getting
 things wrong first, and re-litigating them wastes time. Full history is in
 `AUDIT.md`; this file is the condensed, actionable version.
@@ -102,13 +106,21 @@ don't commit the run.
   `profiles.py`, including the real parity check plotted visually. Add a
   new numbered notebook per module as it lands, don't keep bolting onto
   this one indefinitely.
-- **Not started**: the actual fitter (bounded nonlinear least squares from
-  a real starting guess — everything above only evaluates *known*
-  parameters, it doesn't find them yet). This is the next piece of work.
-  Also not started: modified Williamson-Hall (`getWH.m` equivalent), the
-  contrast factor (cubic case, `Ch00(1 - q*H²)`), and resolving whether
-  `onepeak.m`'s fitting path is numerically identical to `pv_tv_aa.m`'s
-  plotting path (open question, see `AUDIT.md` §7 and §9).
+- `src/dippa/background.py` — closed-form quadratic background fit. Done,
+  tested against synthetic data and sanity-checked against the real
+  reference fixture.
+- `src/dippa/fitting.py` — the per-peak fitter. Done, parity-verified the
+  strong way: starting from a genuinely bad guess (R²=-1.23), recovers
+  R²=0.994 against the real reference pattern with peak positions accurate
+  to ~0.001%. Architecture is local-decontaminated-window fitting, not
+  "freeze other peaks and fit against the whole pattern" — see `AUDIT.md`
+  §11 before touching this module, the reasoning isn't obvious from the
+  code alone. Known simplification: fits one peak at a time even when
+  windows overlap, relies on multiple passes rather than joint fitting for
+  close peaks — see `TODO.md`.
+- **Not started**: modified Williamson-Hall (`getWH.m` equivalent) and the
+  contrast factor (cubic case, `Ch00(1 - q*H²)`) — these consume the
+  fitter's output, not needed to build the fitter itself.
 - Repo not yet pushed anywhere live — this baseline was built in a
   sandboxed environment and handed off as a zip. No CI has run for real yet.
 

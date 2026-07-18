@@ -204,7 +204,121 @@ before trusting a from-scratch fit rather than a forward-model evaluation
 at already-known parameters.
 
 
-## 10. Immediate implication for scope
+## 10. Fitting pipeline is three stages, not one (2026-07-18)
+
+Resolves the open question from §7/§9: does `onepeak.m` (the actual
+fitting entry point) use the same peak-shape logic as `pv_tv_aa.m`
+(plotting, already parity-verified)?
+
+**Peak shape: yes, identical.** `onepeak.m` has its own local copy of the
+objective function (`pv_tv_asymm` for the 6-parameter case) and it calls
+the exact same `pk_alpha_asymm`/`pk_voigt2asymm` already ported into
+`profiles.py`. No rework needed there.
+
+**Background: no — it isn't part of either function.** `pv_tv_aa.m`
+evaluates a full quadratic background (`c0 + c1*x + c2*x²`), but
+`onepeak.m`'s fitting objective explicitly drops the quadratic term (it's
+commented out in the source: `backgd = lam0(1,len) + x*lam0(2,len)
+;%+ lam0(3,len)*x.^2;`). Tracing where the quadratic coefficient actually
+comes from (`BIGdippa.m` line ~1316) shows the real pipeline is **three
+stages, not one**:
+
+1. **Background estimation** (`steel_bcg.m` → `bcgminus`): given the
+   user-supplied approximate peak positions, collect the data points
+   *outside* a window of `bcg2peak*1.25` around every peak, and fit a
+   quadratic to just those background-only points.
+2. **Per-peak fitting** (`onepeak.m`, called once per peak): fit that one
+   peak's position/amplitude/width(s)/eta(s), plus a small linear-only
+   adjustment to the background's constant and slope terms — the quadratic
+   term from stage 1 is carried through unchanged. Bounds are very tight
+   (0.9999–1.0001× the starting value) on every peak *except* the one
+   currently being fit, which gets much looser bounds (±`bcg2peak`) — this
+   is the actual mechanism behind "individual peak fitting": freeze
+   everything else, let one peak move, repeat.
+3. Peaks are fit one at a time this way, not simultaneously.
+
+This is good news for the port's design (already staged, now with sharper
+detail — a background stage genuinely comes first, not just conceptually).
+
+**Correction to an earlier draft of this section:** it's tempting to read
+the random-start `fminsearch` as a reliability risk (different starts
+landing in different local minima), but that's not actually correct here.
+Fitting a polynomial by least squares is linear in its parameters, so the
+sum-of-squared-error surface over `(c0, c1, c2)` is a strictly convex bowl
+with a single global minimum — there is no local-minima trap for
+`fminsearch` to fall into regardless of starting point. The random start
+doesn't put correctness at risk.
+
+What *is* still true: it's unnecessary complexity for a problem with an
+exact closed-form solution, and the internal function it calls
+(`fitcube`/`expfun`, with parameters literally named `A`, `m`, `lambda`) is
+clearly a copy-pasted exponential-decay curve-fitting utility repurposed
+for a quadratic without renaming — a "reused what was lying around" signal
+in the original codebase, not a deliberate design choice. Dippa's
+background stage should still use a direct least-squares solve (e.g.
+`numpy.polynomial.polynomial.polyfit`) for simplicity and to drop the
+dependency on solver tolerances and an unused RNG call — but the
+justification is code clarity, not a correctness fix, and shouldn't be
+overstated as one.
+
+The per-peak background handled inside `onepeak.m` is a genuinely
+different, smaller job: only a linear local correction (`c0 + c1*x`), not
+the quadratic — and that's a sound design, not a simplification. Over the
+narrow window used to fit one peak (`±bcg2peak`, a small fraction of the
+full pattern's g-range), any smooth background curve is well approximated
+by a line; the quadratic curvature only matters at the scale of the full
+pattern, which is exactly where the one-time `steel_bcg` stage operates.
+
+
+## 11. The fitter is built, and it's more interesting than `onepeak.m` alone suggested (2026-07-18)
+
+Tracing `onepeak.m`'s caller (`indivfit_GUI.m`) revealed the real algorithm
+is not "freeze every other peak, fit one against the whole pattern." For
+each peak fit, the original:
+
+1. Extracts a **local window** of data around that peak.
+2. **Decontaminates** it: subtracts the current best-known contribution of
+   every *other* peak plus the full background, via the algebraic identity
+   `local_data + model(nearby peaks only) − model(everything)`, which nets
+   out to `local_data − model(far peaks) − background`.
+3. Fits just the target peak, plus a small fresh *local linear* background
+   (the quadratic term is already gone, having been subtracted in step 2)
+   against that cleaned window.
+
+This is genuinely elegant, and it explains two things noted in §10 without
+being able to explain them at the time: why `onepeak.m`'s background is
+linear-only (the quadratic isn't its job, decontamination already removed
+it), and why per-peak fitting works reliably despite tight bounds — the
+"other peaks" in a fitting window are only ever the ones close enough to
+matter, not all nine.
+
+**Ported to `src/dippa/background.py` and `src/dippa/fitting.py`.**
+Background: closed-form quadratic OLS (see §10 for why this is simpler
+than, not more correct than, the original's `fminsearch`). Per-peak
+fitting: local decontaminated window + bounded `scipy.optimize.least_squares`,
+staged over multiple passes.
+
+**Documented simplification:** the original fits overlapping peak clusters
+jointly within a shared window. This port fits one peak at a time always,
+relying on multiple passes (each seeing the latest fit of every other peak)
+to let close peaks refine each other iteratively — a Gauss-Seidel-style
+scheme rather than a joint fit. Fine for well-separated peaks, an open gap
+for tightly overlapping ones (see `TODO.md`).
+
+**Parity result, and this is the stronger claim than §9's:** §9 proved the
+*forward model* was correct by evaluating known parameters. This proves
+the *fitter* works — starting from a genuinely bad guess (R² = −1.23,
+worse than predicting the mean: positions jittered, amplitudes off by up
+to 50%, widths and etas set to generic placeholder values, background
+re-derived from the perturbed positions rather than taken from the known
+answer), three passes of `fit_pattern` recovers R² = 0.994 against the
+real measured pattern, with every peak position recovered to within
+~0.001% of the real saved value and amplitudes within a few percent. See
+`tests/test_fitting.py::test_fit_pattern_recovers_real_peaks_from_rough_guess`.
+
+## 12. Immediate implication for scope
+
+
 
 The handover doc's own risk section (§16.1) warns against building
 everything at once. Given the real duplication pattern found here, the
