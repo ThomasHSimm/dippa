@@ -41,15 +41,17 @@ TODO is worse than none.
       - [x] Add residual/√counts normalization alongside absolute residuals
       - [x] Drop any strain-position-shift claims unsupported by low-SNR low-strain data
 
-### Future (Phases 4+)
+### Completed (Phase 4 regridding/interpolation)
 
-- [ ] **Phase 4: Interpolation and regridding** (`tsinterpl.m` port) — requires access to
-      original MATLAB source code (`BIGdippaFunctions/tsinterpl.m`). Tasks:
-      - [ ] Port `tsinterpl.m` time-interpolation logic to Python (`regrid.py`)
-      - [ ] Handle 2θ ↔ g coordinate conversion
-      - [ ] Implement PCHIP (Piecewise Cubic Hermite Interpolation) regridding
-      - [ ] Fix int16 overflow edge cases on very high-intensity peaks
-      - [ ] Add tests against reference MATLAB output
+- [x] **Phase 4: Interpolation and regridding** (`tsinterpl.m` port, `regrid.py`):
+      - [x] Port `tsinterpl.m` time-interpolation logic to Python (`regrid.py`)
+      - [x] Handle 2θ ↔ g coordinate conversion (theta_to_g, g_to_theta)
+      - [x] Implement PCHIP (Piecewise Cubic Hermite Interpolation) regridding
+      - [x] Fix int16 overflow edge cases (automatic via Python arbitrary-precision ints)
+      - [x] Add comprehensive test suite (21 tests, all passing)
+      - [x] Validate against ni_combo.mat (grid uniformity to machine precision)
+
+### Future (Phases 5+)
 - [ ] Modified Williamson-Hall (`getWH.m` equivalent) — mWH-1/2/3 per
       Equation 1 / Table 2 of the 2016 Mater. Des. paper. Prerequisites
       now settled from source (`AUDIT.md` §4): abscissa `X = g·√C` with

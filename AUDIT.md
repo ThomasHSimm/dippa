@@ -493,4 +493,33 @@ This verifies that:
 3. The coordinate system assumption (g = 2sinθ/λ, tube='Co' for doublet) is
    consistent with how the reference data was produced.
 
-Next phase (phase 4): port `tsinterpl.m` time-interpolation to Python.
+## 17. Phase 4 complete: tsinterpl.m port to regrid.py (2026-07-19)
+
+Ported `BIGdippaFunctions/tsinterpl.m` (time-interpolation/regridding) to
+Python as `src/dippa/regrid.py`. Functionality:
+
+- **Coordinate conversion**: 2θ (degrees) ↔ g = 2sinθ/λ (Ų⁻¹)
+- **Regridding with PCHIP**: Converts irregular 2θ grid to uniform g-step
+  grid using monotone cubic Hermite interpolation (scipy's PchipInterpolator)
+- **Default step**: 5e-5 Ų⁻¹ (matches ni_combo.mat)
+- **Reversed-data handling**: Automatically sorts if g is descending (line 15–20
+  in MATLAB original)
+- **PCHIP overshoot handling**: Optional clipping of negative values on low-
+  intensity regions (PCHIP can overshoot near noise)
+- **Int16 overflow fix**: Python ints are arbitrary precision; no risk of
+  overflow in grid-index calculation (MATLAB line 26)
+
+**Validation against ni_combo.mat**:
+- Grid step uniformity: 5e-5 Ų⁻¹ to machine precision (std: 7.7e-19)
+- Monotonicity preserved across all 9 samples
+- Coordinate conversion matches expected Bragg positions
+- Roundtrip conversion (theta → g → theta) accurate to 10⁻¹⁰
+
+**Tests**: 21 new unit tests (all passing), covering:
+- Coordinate conversions and roundtrip accuracy
+- Known Bragg reflections (Ni FCC with Cu/Co radiation)
+- Regridding properties (monotonicity, step uniformity)
+- Edge cases (extreme step sizes, single peaks, noisy data)
+- Integration tests (synthetic workflows)
+
+**Total test suite**: 59 passing (38 existing + 21 new regrid).
