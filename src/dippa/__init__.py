@@ -11,6 +11,11 @@ from dippa.matlab_io import (
     squeeze_value,
     struct_to_dict,
 )
+from dippa.regrid import (
+    g_to_theta,
+    regrid_to_g,
+    theta_to_g,
+)
 
 __version__ = "0.0.1.dev0"
 
@@ -20,4 +25,7 @@ __all__ = [
     "load_matlab_samples",
     "squeeze_value",
     "struct_to_dict",
+    "regrid_to_g",
+    "theta_to_g",
+    "g_to_theta",
 ]
