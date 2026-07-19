@@ -474,14 +474,16 @@ Consequences, now implemented:
 ## 16. Phase 3 verification: dippa re-fit of all 9 ni_combo.mat samples (2026-07-19)
 
 All 9 samples from `ni_combo.mat` were re-fit using dippa's `fit_pattern`
-with stored MATLAB parameters as starting guesses. Result:
+from deliberately rough, reproducible starts: stored positions jittered by
+up to 0.005 Å⁻¹, stored amplitudes scaled by 0.5–1.5, generic FWHM/eta
+values, and a quadratic background re-estimated from the perturbed positions.
+This remains a recovery check, not an independent start or MATLAB parity.
+The executable comparison table, figure, and per-sample warnings are in
+`notebooks/03_fitting_demonstration.ipynb`. Result:
 
-- **Numerical stability**: R² changes < 0.00004 (mean: -0.000009), confirms
-  the fitting algorithm converges to very similar local minima.
-- **Parameter recovery**: Position changes < 0.00003 Å⁻¹ (mean: < 10⁻⁶), 
-  amplitude changes < 16 counts (<0.1% relative), FWHM changes < 0.000015
-  Å⁻¹ (<0.1% relative). When starting from MATLAB parameters, dippa
-  produces essentially identical results.
+- **Parameter recovery**: across all 45 peaks, the largest sample-level
+  position error is 0.0000303 Å⁻¹, amplitude error is 0.225%, and integral-
+  breadth error is 1.744%.
 - **Minor bound violations**: Only sample 0 (niHmid_halfpc, lowest SNR)
   hit bounds during fitting (eta_left pegged at 1.3 for peaks 3 and 4),
   consistent with the width/shape non-identifiability documented in §15.
