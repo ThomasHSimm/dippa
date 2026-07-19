@@ -127,7 +127,7 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#not-yet-started" id="toc-not-yet-started" class="nav-link active" data-scroll-target="#not-yet-started">Not yet started</a></li>
+  <li><a href="#current-state" id="toc-current-state" class="nav-link active" data-scroll-target="#current-state">Current state</a></li>
   <li><a href="#proposed-v0.1-scope" id="toc-proposed-v0.1-scope" class="nav-link" data-scroll-target="#proposed-v0.1-scope">Proposed v0.1 scope</a></li>
   <li><a href="#deliberately-excluded-from-v0.1" id="toc-deliberately-excluded-from-v0.1" class="nav-link" data-scroll-target="#deliberately-excluded-from-v0.1">Deliberately excluded from v0.1</a></li>
   <li><a href="#parity-testing-approach" id="toc-parity-testing-approach" class="nav-link" data-scroll-target="#parity-testing-approach">Parity-testing approach</a></li>
@@ -160,15 +160,15 @@ ul.task-list li input[type="checkbox"] {
 <div class="lead">
 <p>The biggest risk flagged during scoping was building everything at once — full CMWP-equivalent scope, all symmetries, GUI, and packaging in one pass. This page exists to make the narrower scope explicit and keep it that way.</p>
 </div>
-<section id="not-yet-started" class="level2">
-<h2 class="anchored" data-anchor-id="not-yet-started">Not yet started</h2>
-<p>No fitting or analysis logic has been ported. Current state is: packaging scaffold, CI, and a loader for the legacy <code>.mat</code> state files (I/O only, no fitting math). See the <a href="./audit.html">source audit</a> for what’s been inspected.</p>
+<section id="current-state" class="level2">
+<h2 class="anchored" data-anchor-id="current-state">Current state</h2>
+<p>Ported and tested: legacy <code>.mat</code> I/O, the pseudo-Voigt profile functions (forward-model-verified against the original tool’s saved fit, R² = 0.994), quadratic background estimation, and the per-peak local-window fitter with structured diagnostics (single-fixture recovery: R² = 0.994 from a rough start; integral breadth within ~15%; per-side width/shape parameters not individually identified — see <code>AUDIT.md</code> §15). Not started: contrast factors and modified Williamson-Hall. Until those land, this package produces fitted peak parameters, not microstructural quantities.</p>
 </section>
 <section id="proposed-v0.1-scope" class="level2">
 <h2 class="anchored" data-anchor-id="proposed-v0.1-scope">Proposed v0.1 scope</h2>
 <ul>
 <li>Cubic symmetry only (no HCP).</li>
-<li>Sample fitting only (no instrumental-correction UI in the core package).</li>
+<li>Sample fitting only (no instrumental-standard handling in v0.1). An honest consequence, stated plainly: the original tool <em>always</em> subtracts an instrumental breadth before Williamson-Hall (<code>AUDIT.md</code> §4), and instrumental broadening can be inseparable from sample broadening for narrow peaks. v0.1’s Williamson-Hall outputs are therefore a <strong>methodological preview</strong> — instrument-uncorrected, labelled as such, and not presented as analysis-ready dislocation-density or crystallite-size numbers. The first scientifically usable release requires either the (cheap — it’s a per-peak breadth subtraction, not a deconvolution) instrumental path or a sharply defined applicability warning per dataset.</li>
 <li>Pseudo-Voigt peak fitting matching the original <code>pv_tv_aa</code> / <code>pk_alpha</code> behaviour, including Kα1/Kα2 doublet handling for Cu/Co/Fe.</li>
 <li>Modified Williamson-Hall analysis (<code>getWH.m</code>’s three variants).</li>
 <li>One worked example from the original tool’s bundled reference data, reproduced within a documented numerical tolerance.</li>

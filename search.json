@@ -4,14 +4,14 @@
     "href": "index.html",
     "title": "Dippa",
     "section": "",
-    "text": "A from-scratch Python rebuild of published Warren-Averbach and (modified) Williamson-Hall peak-profile methods, currently in pre-alpha: the packaging and I/O scaffold exists, the fitting and analysis logic does not yet."
+    "text": "A from-scratch Python rebuild of published diffraction peak-profile analysis methods, currently in pre-alpha: legacy I/O, the pseudo-Voigt profile functions, background estimation and the per-peak fitter exist and are tested against the original tool’s own saved reference data; contrast factors and modified Williamson-Hall do not exist yet, so no microstructural outputs are produced."
   },
   {
     "objectID": "index.html#status",
     "href": "index.html#status",
     "title": "Dippa",
     "section": "Status",
-    "text": "Status\nThis site describes a project in progress, not a released tool. Nothing here has been validated for real analysis. See the source audit for what has actually been inspected in the original MATLAB codebase, and the roadmap for what’s deliberately excluded from v0.1 and why."
+    "text": "Status\nThis site describes a project in progress, not a released tool. Nothing here has been validated for real analysis: the fitter’s checks are single-fixture recovery tests, not full MATLAB parity, and Williamson-Hall is not yet implemented. See the source audit for what has actually been inspected and verified, and the roadmap for what’s deliberately excluded from v0.1 and why."
   },
   {
     "objectID": "index.html#origin",
@@ -46,14 +46,14 @@
     "href": "audit.html#profile-function-and-known-limitation",
     "title": "Source audit",
     "section": "Profile function and known limitation",
-    "text": "Profile function and known limitation\npv_tv_aa.m sums pseudo-Voigt peaks plus a shared quadratic background. Peak shape and the Kα1/Kα2 doublet are handled in pk_alpha.m, which hardcodes wavelengths for three tubes only:\n\n\n\nTube\nλα1 (Å)\nλα2 (Å)\n\n\n\n\nCu\n1.54056\n1.54439\n\n\nCo\n1.789010\n1.792900\n\n\nFe\n1.93604\n1.93998\n\n\n\nAnything else falls through with no explicit error. A port should take wavelength as an explicit input, with these three pairs as one built-in table among others, rather than reproducing the tube-name lookup as the only path."
+    "text": "Profile function and known limitation\npv_tv_aa.m sums pseudo-Voigt peaks plus a shared quadratic background. Peak shape and the Kα1/Kα2 doublet are handled in pk_alpha.m, which hardcodes wavelengths for three tubes only:\n\n\n\nTube\nλα1 (Å)\nλα2 (Å)\n\n\n\n\nCu\n1.54056\n1.54439\n\n\nCo\n1.789010 / 1.78897\n1.792900 / 1.79285\n\n\nFe\n1.93604\n1.93998\n\n\n\nThe two Co pairs are not a typo here: the original source is internally inconsistent — pk_alpha.m (symmetric path) uses the first pair, pk_alpha_asymm.m (asymmetric path) uses the second, each with the other present as a comment. The port carries the asymmetric-path pair, which is the path verified against real data. Anything other than the three tubes falls through with no explicit error. A port should take wavelength as an explicit input, with these three pairs as one built-in table among others, rather than reproducing the tube-name lookup as the only path."
   },
   {
     "objectID": "audit.html#williamson-hall-implementation",
     "href": "audit.html#williamson-hall-implementation",
     "title": "Source audit",
     "section": "Williamson-Hall implementation",
-    "text": "Williamson-Hall implementation\ngetWH.m implements modified Williamson-Hall (contrast-factor weighted), matching the standard Ungár/Borbély formulation:\nC = Aest * (1 - q*H2)\nX = g .* sqrt(C)\nfit to one of three selectable forms — linear (size + strain·X), root-sum-square (sqrt(size² + strain²·X²)), or quadratic-in-X (size + strain·X²). This is a known, citable method, not an idiosyncratic one — useful confirmation for anyone deciding whether a Python port is worth trusting."
+    "text": "Williamson-Hall implementation\ngetWH.m implements modified Williamson-Hall (contrast-factor weighted), matching the standard Ungár/Borbély formulation:\nC = Aest * (1 - q*H2)\nX = g .* sqrt(C)      # g = fitted peak *position* (diffraction-vector magnitude)\nThe contrast-corrected X is the horizontal coordinate; peak breadth — side-averaged FWHM or the closed-form pseudo-Voigt integral breadth, selectable in the original (getFW_IB.m), with the instrumental breadth subtracted — is the dependent quantity fit against it.\nfit to one of three selectable forms — linear (size + strain·X), root-sum-square (sqrt(size² + strain²·X²)), or quadratic-in-X (size + strain·X²). This is a known, citable method, not an idiosyncratic one — useful confirmation for anyone deciding whether a Python port is worth trusting."
   },
   {
     "objectID": "audit.html#two-independent-duplication-axes",
@@ -77,18 +77,18 @@
     "text": "The biggest risk flagged during scoping was building everything at once — full CMWP-equivalent scope, all symmetries, GUI, and packaging in one pass. This page exists to make the narrower scope explicit and keep it that way."
   },
   {
-    "objectID": "roadmap.html#not-yet-started",
-    "href": "roadmap.html#not-yet-started",
+    "objectID": "roadmap.html#current-state",
+    "href": "roadmap.html#current-state",
     "title": "Roadmap",
-    "section": "Not yet started",
-    "text": "Not yet started\nNo fitting or analysis logic has been ported. Current state is: packaging scaffold, CI, and a loader for the legacy .mat state files (I/O only, no fitting math). See the source audit for what’s been inspected."
+    "section": "Current state",
+    "text": "Current state\nPorted and tested: legacy .mat I/O, the pseudo-Voigt profile functions (forward-model-verified against the original tool’s saved fit, R² = 0.994), quadratic background estimation, and the per-peak local-window fitter with structured diagnostics (single-fixture recovery: R² = 0.994 from a rough start; integral breadth within ~15%; per-side width/shape parameters not individually identified — see AUDIT.md §15). Not started: contrast factors and modified Williamson-Hall. Until those land, this package produces fitted peak parameters, not microstructural quantities."
   },
   {
     "objectID": "roadmap.html#proposed-v0.1-scope",
     "href": "roadmap.html#proposed-v0.1-scope",
     "title": "Roadmap",
     "section": "Proposed v0.1 scope",
-    "text": "Proposed v0.1 scope\n\nCubic symmetry only (no HCP).\nSample fitting only (no instrumental-correction UI in the core package).\nPseudo-Voigt peak fitting matching the original pv_tv_aa / pk_alpha behaviour, including Kα1/Kα2 doublet handling for Cu/Co/Fe.\nModified Williamson-Hall analysis (getWH.m’s three variants).\nOne worked example from the original tool’s bundled reference data, reproduced within a documented numerical tolerance.\nNo GUI."
+    "text": "Proposed v0.1 scope\n\nCubic symmetry only (no HCP).\nSample fitting only (no instrumental-standard handling in v0.1). An honest consequence, stated plainly: the original tool always subtracts an instrumental breadth before Williamson-Hall (AUDIT.md §4), and instrumental broadening can be inseparable from sample broadening for narrow peaks. v0.1’s Williamson-Hall outputs are therefore a methodological preview — instrument-uncorrected, labelled as such, and not presented as analysis-ready dislocation-density or crystallite-size numbers. The first scientifically usable release requires either the (cheap — it’s a per-peak breadth subtraction, not a deconvolution) instrumental path or a sharply defined applicability warning per dataset.\nPseudo-Voigt peak fitting matching the original pv_tv_aa / pk_alpha behaviour, including Kα1/Kα2 doublet handling for Cu/Co/Fe.\nModified Williamson-Hall analysis (getWH.m’s three variants).\nOne worked example from the original tool’s bundled reference data, reproduced within a documented numerical tolerance.\nNo GUI."
   },
   {
     "objectID": "roadmap.html#deliberately-excluded-from-v0.1",

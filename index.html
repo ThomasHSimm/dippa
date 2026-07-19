@@ -156,11 +156,11 @@ ul.task-list li input[type="checkbox"] {
 
 
 <div class="lead">
-<p>A from-scratch Python rebuild of published Warren-Averbach and (modified) Williamson-Hall peak-profile methods, currently in pre-alpha: the packaging and I/O scaffold exists, the fitting and analysis logic does not yet.</p>
+<p>A from-scratch Python rebuild of published diffraction peak-profile analysis methods, currently in pre-alpha: legacy I/O, the pseudo-Voigt profile functions, background estimation and the per-peak fitter exist and are tested against the original tool’s own saved reference data; contrast factors and modified Williamson-Hall do not exist yet, so no microstructural outputs are produced.</p>
 </div>
 <section id="status" class="level2">
 <h2 class="anchored" data-anchor-id="status">Status</h2>
-<p>This site describes a project in progress, not a released tool. Nothing here has been validated for real analysis. See the <a href="./audit.html">source audit</a> for what has actually been inspected in the original MATLAB codebase, and the <a href="./roadmap.html">roadmap</a> for what’s deliberately excluded from v0.1 and why.</p>
+<p>This site describes a project in progress, not a released tool. Nothing here has been validated for real analysis: the fitter’s checks are single-fixture recovery tests, not full MATLAB parity, and Williamson-Hall is not yet implemented. See the <a href="./audit.html">source audit</a> for what has actually been inspected and verified, and the <a href="./roadmap.html">roadmap</a> for what’s deliberately excluded from v0.1 and why.</p>
 </section>
 <section id="origin" class="level2">
 <h2 class="anchored" data-anchor-id="origin">Origin</h2>

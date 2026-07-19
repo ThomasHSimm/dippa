@@ -172,7 +172,7 @@ ul.task-list li input[type="checkbox"] {
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>This audit describes what the <em>code</em> does — file structure, data shapes, which equations are implemented. It does not independently verify that the underlying physics or fitting behaviour is correct; that’s the job of the parity-testing step described in the <a href="./roadmap.html">roadmap</a>, which hasn’t happened yet.</p>
+<p>This audit describes what the <em>code</em> does — file structure, data shapes, which equations are implemented. It does not independently verify that the underlying physics or fitting behaviour is correct; that’s the job of the verification steps described in the <a href="./roadmap.html">roadmap</a>. So far: the profile functions are forward-model-verified against the original tool’s saved fit (R² = 0.994), and the fitter has a single-fixture recovery test. Full MATLAB parity (identical starts, per-parameter comparison) has not happened yet.</p>
 </div>
 </div>
 <section id="inventory" class="level2">
@@ -253,8 +253,8 @@ ul.task-list li input[type="checkbox"] {
 </tr>
 <tr class="even">
 <td>Co</td>
-<td>1.789010</td>
-<td>1.792900</td>
+<td>1.789010 / 1.78897</td>
+<td>1.792900 / 1.79285</td>
 </tr>
 <tr class="odd">
 <td>Fe</td>
@@ -263,13 +263,14 @@ ul.task-list li input[type="checkbox"] {
 </tr>
 </tbody>
 </table>
-<p>Anything else falls through with no explicit error. A port should take wavelength as an explicit input, with these three pairs as one built-in table among others, rather than reproducing the tube-name lookup as the only path.</p>
+<p>The two Co pairs are not a typo here: the original source is internally inconsistent — <code>pk_alpha.m</code> (symmetric path) uses the first pair, <code>pk_alpha_asymm.m</code> (asymmetric path) uses the second, each with the other present as a comment. The port carries the asymmetric-path pair, which is the path verified against real data. Anything other than the three tubes falls through with no explicit error. A port should take wavelength as an explicit input, with these three pairs as one built-in table among others, rather than reproducing the tube-name lookup as the only path.</p>
 </section>
 <section id="williamson-hall-implementation" class="level2">
 <h2 class="anchored" data-anchor-id="williamson-hall-implementation">Williamson-Hall implementation</h2>
 <p><code>getWH.m</code> implements <strong>modified</strong> Williamson-Hall (contrast-factor weighted), matching the standard Ungár/Borbély formulation:</p>
 <pre><code>C = Aest * (1 - q*H2)
-X = g .* sqrt(C)</code></pre>
+X = g .* sqrt(C)      # g = fitted peak *position* (diffraction-vector magnitude)</code></pre>
+<p>The contrast-corrected <code>X</code> is the horizontal coordinate; peak <em>breadth</em> — side-averaged FWHM or the closed-form pseudo-Voigt integral breadth, selectable in the original (<code>getFW_IB.m</code>), with the instrumental breadth subtracted — is the dependent quantity fit against it.</p>
 <p>fit to one of three selectable forms — linear (<code>size + strain·X</code>), root-sum-square (<code>sqrt(size² + strain²·X²)</code>), or quadratic-in-X (<code>size + strain·X²</code>). This is a known, citable method, not an idiosyncratic one — useful confirmation for anyone deciding whether a Python port is worth trusting.</p>
 </section>
 <section id="two-independent-duplication-axes" class="level2">
