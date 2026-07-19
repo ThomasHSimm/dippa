@@ -8,6 +8,11 @@ TODO is worse than none.
 
 ## Now / next up
 
+### Completed (Phases 1–3)
+
+- [x] **matlab_io module** (`src/dippa/matlab_io.py`): `MatlabSample` dataclass
+      and extraction functions for scipy.io.loadmat data. Tested on minimal
+      fixture (ni_combo_minimal.mat: 37.8 KB, 1 sample, decimated).
 - [x] **The fitter.** Built as `background.py` + `fitting.py`.
       Single-fixture recovery result (not MATLAB parity — see `AUDIT.md`
       §11/§15): R²=0.994 from a rough start (R²=-1.23), positions ~0.001%,
@@ -19,6 +24,24 @@ TODO is worse than none.
       matching `indivfit_GUI.m`). Added after review flagged that the
       bare-array API violated the uncertainty-first principle and that
       local backgrounds were fitted then discarded.
+- [x] **Phase 3 validation**: All 9 ni_combo.mat samples re-fit with dippa
+      starting from stored MATLAB parameters. Result: R² changes < 0.00004,
+      peak parameters < 0.1% relative error. Confirms port correctness
+      (see `AUDIT.md` §16).
+### Next up (Phase 2 notebook fixes)
+
+- [ ] **Demonstration notebook fixes** (`notebooks/01_fitting_demonstration.ipynb`):
+      - Fix coordinate axis label: 2θ (degrees) → g (Å⁻¹) in axis labels and text
+      - Remove claim about peak 4 artifact/overlap — confirmed distinct via spacing analysis
+      - Add hkl indexing (111/200/220/311/222) to peak labels
+      - Compute all narrative numbers as f-strings from actual data (no hardcoded values)
+      - Fix eta interpretation (>1.3 is fitting artifact, not physical)
+      - Relabel samples with (strain) notation in sample names
+      - Add residual/√counts normalization alongside absolute residuals
+      - Drop any strain-position-shift claims unsupported by low-SNR low-strain data
+
+### Future (Phases 4+)
+
 - [ ] Modified Williamson-Hall (`getWH.m` equivalent) — mWH-1/2/3 per
       Equation 1 / Table 2 of the 2016 Mater. Des. paper. Prerequisites
       now settled from source (`AUDIT.md` §4): abscissa `X = g·√C` with
