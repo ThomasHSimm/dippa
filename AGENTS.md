@@ -133,11 +133,15 @@ don't commit the run.
   one peak at a time even when windows overlap (the original fits
   window-sharing peaks jointly, with neighbour positions frozen but
   shapes loosely bounded — `AUDIT.md` §10) — see `TODO.md`.
+- `src/dippa/structure.py` — typed FCC/BCC/HCP phases, allowed-reflection
+  generation, validated peak-to-reflection bindings, and cubic/HCP lattice
+  refinement. HCP structure and notation are supported, but HCP contrast
+  and Williamson-Hall remain explicitly deferred; see `AUDIT.md` §20.
 - `src/dippa/contrast.py`, `breadth.py`, `williamson_hall.py` — cubic
   contrast factors, FW/IB breadths with nearest-position instrumental
   subtraction, and classical/mwhA/mwhB/mwhC fitting. Done, with typed
-  explicit HKLs, exclusion policies for flagged/nonpositive breadths,
-  Jacobian covariance and 95% confidence intervals. The contrast factor is
+  explicit validated reflection bindings, exclusion policies for
+  flagged/nonpositive breadths, Jacobian covariance and 95% confidence intervals. The contrast factor is
   parity-tested against the five stored C values in
   `SS316_logINDI_RES.mat`; see `AUDIT.md` §19. The nine-sample nickel
   demonstration reports that the half-percent sample retains only two

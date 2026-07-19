@@ -590,3 +590,41 @@ Its tables, trends, confidence intervals, and plots are computed at runtime.
 The low-SNR half-percent sample demonstrates both safety policies: (111) is
 excluded for nonpositive corrected breadth and (311)/(222) for eta bound
 hits, leaving two retained points and therefore no three-parameter mWH fit.
+
+## 20. Phase schema, reflection binding, and HCP structure trace (2026-07-19)
+
+The original `0. variables/phases.mat` stores its phase definition in
+`dsettings`: `cstruct`, `lat1`, `lat2`, `index`, and `d`. The Python
+`Phase` schema preserves that meaning: `lat1` is `a`, `lat2` is `c` for
+HCP, and reflections are stored internally as the same three-column
+`(h,k,l)` indices. `dspacing_dippa.m` confirms both the cubic metric and
+the HCP metric
+`1/d² = (4/3)(h²+hk+k²)/a² + l²/c²`. Four-index Miller-Bravais input is
+accepted only when `i = -(h+k)` and HCP output uses the original GUI's
+compact dot labels (`10.0`, `00.2`, `10.1`).
+
+Peak indexing is now an explicit validated `ReflectionBinding`. Automatic
+assignment requires exactly one unused allowed reflection inside the
+requested reciprocal-space tolerance; missing or ambiguous matches are
+errors. Both cubic contrast and Williamson-Hall consume this binding rather
+than accepting an unvalidated HKL list. Against the five fitted nickel
+positions in `ni_combo_minimal.mat`, the binding selects
+(111)/(200)/(220)/(311)/(222), and the cubic linear least-squares refinement
+computes `a = 3.5298246611630226 Å`.
+
+The saved nickel `fita.IB` value is an 11-slot array, matching the number of
+phase reflection slots rather than the five fitted peaks. Its values may be
+in 2θ-degree units, so this is a likely identification of the field's role,
+not established semantics. A source search found reads and GUI selection of
+FW versus IB but no assignment that writes `fita.IB`; tracing that writer is
+still required before the field can be used as a breadth oracle.
+
+`getWH_HCP.m` computes `x = (2/3)(l/(g·a))²` but hardcodes `a = 2.95`, a
+Ti-specific value. The structural port instead obtains `a` from `Phase`.
+The same routine loads the `WHpref.chk0` / C-bar-hk0 prefactor as `Aest`, but
+does not apply it in its HCP contrast expression; this means HCP strain
+normalisation differs from the cubic branch and remains unresolved.
+`dippa_fitWH_HCP.m` fits four parameters `[q1, size, strain, q2]` and then
+uses `contrastHCP.m`/`Burgcomb` for Burgers-population adjustment. None of
+that HCP contrast, WH, or population path is ported here; it is recorded in
+`TODO.md` as a post-cubic-parity milestone.

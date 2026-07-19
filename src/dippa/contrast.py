@@ -7,25 +7,14 @@ neither that value nor ``q`` is inferred here, so both remain explicit.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Sequence
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+from dippa.structure import Reflection, ReflectionBinding
+
 FloatArray = NDArray[np.float64]
-
-
-@dataclass(frozen=True, slots=True)
-class Reflection:
-    """One explicitly assigned crystallographic reflection."""
-
-    h: int
-    k: int
-    l: int  # noqa: E741 - conventional Miller index name
-
-    def as_tuple(self) -> tuple[int, int, int]:
-        return self.h, self.k, self.l
 
 
 def _hkl_array(hkl: ArrayLike | Sequence[Reflection]) -> FloatArray:
@@ -53,11 +42,13 @@ def h_squared(hkl: ArrayLike | Sequence[Reflection]) -> FloatArray:
 
 
 def contrast_cubic(
-    hkl: ArrayLike | Sequence[Reflection], ch00: float, q: float
+    binding: ReflectionBinding, ch00: float, q: float
 ) -> FloatArray:
-    """Return ``C = ch00 * (1 - q * H²)`` for cubic reflections."""
+    """Return ``C = ch00 * (1 - q * H²)`` for a validated cubic binding."""
+    if binding.phase.cstruct not in {"FCC", "BCC"}:
+        raise ValueError("contrast_cubic requires an FCC or BCC reflection binding")
     if not np.isfinite(ch00) or ch00 <= 0:
         raise ValueError(f"ch00 must be finite and positive, got {ch00}")
     if not np.isfinite(q):
         raise ValueError(f"q must be finite, got {q}")
-    return ch00 * (1.0 - q * h_squared(hkl))
+    return ch00 * (1.0 - q * h_squared(binding.reflections))

@@ -15,7 +15,7 @@ branches; this classical variant is an explicit extension in the Python API.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, Sequence
+from typing import Literal
 
 import numpy as np
 import scipy.optimize
@@ -23,7 +23,8 @@ import scipy.stats
 from numpy.typing import NDArray
 
 from dippa.breadth import DeltaKResult, ExcludedPeak
-from dippa.contrast import Reflection, contrast_cubic, h_squared
+from dippa.contrast import contrast_cubic, h_squared
+from dippa.structure import ReflectionBinding
 
 FloatArray = NDArray[np.float64]
 Variant = Literal["classical", "mwhA", "mwhB", "mwhC"]
@@ -75,14 +76,18 @@ def _model_from_x(x: FloatArray, size: float, strain: float, variant: Variant) -
 
 def williamson_hall_model(
     g: FloatArray,
-    hkl: Sequence[Reflection] | NDArray[np.integer],
+    binding: ReflectionBinding,
     ch00: float,
     parameters: WHParameters,
     variant: Variant,
 ) -> FloatArray:
     """Evaluate one getWH.m model with ``X = g * sqrt(C)``."""
     q = 0.0 if variant == "classical" else parameters.q
-    contrast = contrast_cubic(hkl, ch00=ch00, q=q)
+    if len(g) != len(binding.assignments):
+        raise ValueError("g and reflection binding must contain the same number of peaks")
+    if not np.allclose(g, binding.positions, rtol=0.0, atol=binding.tolerance):
+        raise ValueError("g does not match the validated reflection binding")
+    contrast = contrast_cubic(binding, ch00=ch00, q=q)
     if np.any(contrast <= 0):
         raise ValueError("contrast factors must be positive")
     x = np.asarray(g, dtype=np.float64) * np.sqrt(contrast)
@@ -111,7 +116,7 @@ def _confidence_intervals(
 
 def fit_williamson_hall(
     breadths: DeltaKResult,
-    hkl: Sequence[Reflection] | NDArray[np.integer],
+    binding: ReflectionBinding,
     ch00: float,
     *,
     variant: Variant = "mwhA",
@@ -120,17 +125,21 @@ def fit_williamson_hall(
 ) -> WilliamsonHallResult:
     """Fit q, size and strain jointly, or size/strain with q=0 classically.
 
-    The HKL sequence is alongside the original peak array: retained peaks are
-    selected using ``breadths.sample_peak_indices``. Reflections are never
-    inferred from peak order, position or lattice symmetry.
+    The validated binding is alongside the original peak array: retained
+    peaks are selected using ``breadths.sample_peak_indices``. Reflections
+    are never inferred inside the fit.
     """
     if variant not in {"classical", "mwhA", "mwhB", "mwhC"}:
         raise ValueError(f"unknown Williamson-Hall variant: {variant!r}")
     indices = breadths.sample_peak_indices
-    if len(hkl) <= int(indices.max(initial=-1)):
-        raise ValueError("hkl must include an explicit reflection for every input peak")
-    selected_hkl = [hkl[int(index)] for index in indices]
-    h2 = h_squared(selected_hkl)
+    if len(binding.assignments) <= int(indices.max(initial=-1)):
+        raise ValueError("binding must include an explicit reflection for every input peak")
+    if not np.allclose(
+        breadths.positions, binding.positions[indices], rtol=0.0, atol=binding.tolerance
+    ):
+        raise ValueError("breadth positions do not match the validated reflection binding")
+    selected_binding = binding.select(indices)
+    h2 = h_squared(selected_binding.reflections)
     n_parameters = 2 if variant == "classical" else 3
     n_points = len(breadths.delta_k)
     if n_points < n_parameters:
@@ -165,7 +174,7 @@ def fit_williamson_hall(
         parameters = unpack(values)
         return (
             williamson_hall_model(
-                breadths.positions, selected_hkl, ch00, parameters, variant
+                breadths.positions, selected_binding, ch00, parameters, variant
             )
             - breadths.delta_k
         )
@@ -173,7 +182,7 @@ def fit_williamson_hall(
     fit = scipy.optimize.least_squares(residuals, p0, bounds=(lower, upper))
     parameters = unpack(fit.x)
     fitted = williamson_hall_model(
-        breadths.positions, selected_hkl, ch00, parameters, variant
+        breadths.positions, selected_binding, ch00, parameters, variant
     )
     residual = fitted - breadths.delta_k
     dof = n_points - n_parameters
@@ -214,7 +223,7 @@ def fit_williamson_hall(
     values = np.array([parameters.q, parameters.size, parameters.strain])
     intervals = _confidence_intervals(values, covariance, dof, variant == "classical")
     contrast = contrast_cubic(
-        selected_hkl, ch00=ch00, q=0.0 if variant == "classical" else parameters.q
+        selected_binding, ch00=ch00, q=0.0 if variant == "classical" else parameters.q
     )
     x = breadths.positions * np.sqrt(contrast)
     return WilliamsonHallResult(

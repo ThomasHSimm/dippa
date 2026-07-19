@@ -70,6 +70,14 @@ TODO is worse than none.
 - [ ] **Warren–Averbach remains out of scope.** The SS316 WA-track result is
       used only as a stored contrast-factor parity oracle, not as authority
       to port the Fourier workflow.
+- [ ] **HCP contrast/WH/Burgers-population milestone, after cubic parity.**
+      Port and validate `getWH_HCP.m`, `dippa_fitWH_HCP.m`, and
+      `contrastHCP.m`/`Burgcomb`. The structure/reflection layer supports
+      HCP, but the original's four-parameter `[q1,size,strain,q2]` fit and
+      unresolved C-bar-hk0 strain normalisation have not been started.
+- [ ] Trace where the original writes `fita.IB`. The 11-slot saved field is
+      likely phase-reflection data and may be in degrees 2theta, but neither
+      its writer nor its units are proven yet.
 - [x] Decided (not "silently picked"): bound-setting logic in
       `fitting.py` is simplified from `onepeak.m`'s, not a literal
       transcription — documented in the module docstring and `AUDIT.md`
