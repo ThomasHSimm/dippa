@@ -488,7 +488,7 @@ with stored MATLAB parameters as starting guesses. Result:
 
 This verifies that:
 1. The port's implementation of `fit_pattern` is algorithmically sound.
-2. The MATLAB `.mat` file extraction (via `matlab_io.py`) correctly
+2. The MATLAB `.mat` file extraction (via `io/matlab_io.py`) correctly
    preserves all parameter values.
 3. The coordinate system assumption (g = 2sinθ/λ, tube='Co' for doublet) is
    consistent with how the reference data was produced.

@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 import scipy.io
 
-from dippa.legacy_io import load_legacy_fit
+from dippa import load_legacy_fit
 
 
 @pytest.fixture

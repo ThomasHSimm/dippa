@@ -10,7 +10,7 @@ TODO is worse than none.
 
 ### Completed (Phases 1–3)
 
-- [x] **matlab_io module** (`src/dippa/matlab_io.py`): `MatlabSample` dataclass
+- [x] **matlab_io module** (`src/dippa/io/matlab_io.py`): `MatlabSample` dataclass
       and extraction functions for scipy.io.loadmat data. Tested on minimal
       fixture (ni_combo_minimal.mat: 37.8 KB, 1 sample, decimated).
 - [x] **The fitter.** Built as `background.py` + `fitting.py`.

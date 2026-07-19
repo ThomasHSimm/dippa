@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from dippa.matlab_io import (
+from dippa import (
     MatlabSample,
     extract_struct_array,
     load_matlab_samples,

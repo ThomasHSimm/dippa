@@ -100,7 +100,7 @@ don't commit the run.
 
 ## Current state (update this section as work lands)
 
-- `src/dippa/legacy_io.py` — reads legacy `.mat` state files. Done, tested.
+- `src/dippa/io/legacy_io.py` — reads legacy `.mat` state files. Done, tested.
 - `src/dippa/profiles.py` — pseudo-Voigt, asymmetric pseudo-Voigt, Kα
   doublet, multi-peak + background evaluator. Done, forward-model-verified
   (R²=0.994 evaluating the saved MATLAB fit against the saved data,
