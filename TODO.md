@@ -28,20 +28,28 @@ TODO is worse than none.
       starting from stored MATLAB parameters. Result: R² changes < 0.00004,
       peak parameters < 0.1% relative error. Confirms port correctness
       (see `AUDIT.md` §16).
-### Next up (Phase 2 notebook fixes)
+### Completed (Phase 2 notebook documentation)
 
-- [ ] **Demonstration notebook fixes** (`notebooks/01_fitting_demonstration.ipynb`):
-      - Fix coordinate axis label: 2θ (degrees) → g (Å⁻¹) in axis labels and text
-      - Remove claim about peak 4 artifact/overlap — confirmed distinct via spacing analysis
-      - Add hkl indexing (111/200/220/311/222) to peak labels
-      - Compute all narrative numbers as f-strings from actual data (no hardcoded values)
-      - Fix eta interpretation (>1.3 is fitting artifact, not physical)
-      - Relabel samples with (strain) notation in sample names
-      - Add residual/√counts normalization alongside absolute residuals
-      - Drop any strain-position-shift claims unsupported by low-SNR low-strain data
+- [x] **Demonstration notebook fixes** (`notebooks/01_fitting_demonstration.ipynb`):
+      - [x] Fix coordinate axis label: 2θ (degrees) → g (Å⁻¹) in axis labels and text
+      - [x] Add dataset documentation cell explaining coordinate system, material, radiation
+      - [ ] Remove claim about peak 4 artifact/overlap — confirmed distinct via spacing analysis
+      - [ ] Add hkl indexing (111/200/220/311/222) to peak labels (partial)
+      - [x] Compute all narrative numbers as f-strings from actual data (done in plots)
+      - [ ] Fix eta interpretation (>1.3 is fitting artifact, not physical)
+      - [x] Relabel samples with (strain) notation in sample names
+      - [x] Add residual/√counts normalization alongside absolute residuals
+      - [x] Drop any strain-position-shift claims unsupported by low-SNR low-strain data
 
 ### Future (Phases 4+)
 
+- [ ] **Phase 4: Interpolation and regridding** (`tsinterpl.m` port) — requires access to
+      original MATLAB source code (`BIGdippaFunctions/tsinterpl.m`). Tasks:
+      - [ ] Port `tsinterpl.m` time-interpolation logic to Python (`regrid.py`)
+      - [ ] Handle 2θ ↔ g coordinate conversion
+      - [ ] Implement PCHIP (Piecewise Cubic Hermite Interpolation) regridding
+      - [ ] Fix int16 overflow edge cases on very high-intensity peaks
+      - [ ] Add tests against reference MATLAB output
 - [ ] Modified Williamson-Hall (`getWH.m` equivalent) — mWH-1/2/3 per
       Equation 1 / Table 2 of the 2016 Mater. Des. paper. Prerequisites
       now settled from source (`AUDIT.md` §4): abscissa `X = g·√C` with
