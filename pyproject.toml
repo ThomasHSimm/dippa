@@ -26,7 +26,7 @@ dependencies = [
 [project.optional-dependencies]
 gui = ["PySide6>=6.6"]
 dev = ["pytest>=8", "pytest-cov", "ruff==0.15.12"]
-examples = ["matplotlib>=3.8", "jupyter>=1.0", "notebook>=7"]
+examples = ["matplotlib>=3.8", "jupyter>=1.0", "notebook>=7", "ipywidgets>=8"]
 
 [project.urls]
 Repository = "https://github.com/ThomasHSimm/dippa"
