@@ -9,16 +9,31 @@ full CMWP-equivalent scope, all symmetries, GUI, and packaging in one pass.
 This page exists to make the narrower scope explicit and keep it that way.
 :::
 
-## Not yet started
+## Current state
 
-No fitting or analysis logic has been ported. Current state is: packaging
-scaffold, CI, and a loader for the legacy `.mat` state files (I/O only, no
-fitting math). See the [source audit](audit.qmd) for what's been inspected.
+Ported and tested: legacy `.mat` I/O, the pseudo-Voigt profile functions
+(forward-model-verified against the original tool's saved fit, R² = 0.994),
+quadratic background estimation, and the per-peak local-window fitter with
+structured diagnostics (single-fixture recovery: R² = 0.994 from a rough
+start; integral breadth within ~15%; per-side width/shape parameters not
+individually identified — see `AUDIT.md` §15). Not started: contrast
+factors and modified Williamson-Hall. Until those land, this package
+produces fitted peak parameters, not microstructural quantities.
 
 ## Proposed v0.1 scope
 
 - Cubic symmetry only (no HCP).
-- Sample fitting only (no instrumental-correction UI in the core package).
+- Sample fitting only (no instrumental-standard handling in v0.1). An
+  honest consequence, stated plainly: the original tool *always* subtracts
+  an instrumental breadth before Williamson-Hall (`AUDIT.md` §4), and
+  instrumental broadening can be inseparable from sample broadening for
+  narrow peaks. v0.1's Williamson-Hall outputs are therefore a
+  **methodological preview** — instrument-uncorrected, labelled as such,
+  and not presented as analysis-ready dislocation-density or
+  crystallite-size numbers. The first scientifically usable release
+  requires either the (cheap — it's a per-peak breadth subtraction, not a
+  deconvolution) instrumental path or a sharply defined applicability
+  warning per dataset.
 - Pseudo-Voigt peak fitting matching the original `pv_tv_aa` / `pk_alpha`
   behaviour, including Kα1/Kα2 doublet handling for Cu/Co/Fe.
 - Modified Williamson-Hall analysis (`getWH.m`'s three variants).

@@ -88,7 +88,9 @@ against the original tool's output, not a transpilation.
 
 ## Notebooks
 
-`notebooks/` holds runnable examples — currently `01_profiles_walkthrough.ipynb`.
+`notebooks/` holds runnable examples — `01_profiles_walkthrough.ipynb`
+(profile functions) and `02_fitting_walkthrough.ipynb` (the fitter,
+including reading the fit diagnostics).
 These serve two purposes at once: a fast manual sanity-check while developing
 (rerun the notebook, eyeball the plots, no need to reach for a debugger for
 "does this look right") and, once the API stabilises, the first thing a new
@@ -100,8 +102,12 @@ don't commit the run.
 
 - `src/dippa/legacy_io.py` — reads legacy `.mat` state files. Done, tested.
 - `src/dippa/profiles.py` — pseudo-Voigt, asymmetric pseudo-Voigt, Kα
-  doublet, multi-peak + background evaluator. Done, parity-verified
-  (R²=0.994 against `tests/fixtures/reference_{fit,data}.mat`).
+  doublet, multi-peak + background evaluator. Done, forward-model-verified
+  (R²=0.994 evaluating the saved MATLAB fit against the saved data,
+  `tests/fixtures/reference_{fit,data}.mat`). Coordinate convention: `x`
+  is reciprocal-space g = 2sinθ/λ = 1/d in Å⁻¹ — established from the
+  fixture itself, see `AUDIT.md` §13; the doublet displacement is only
+  valid in that coordinate.
 - `notebooks/01_profiles_walkthrough.ipynb` — runnable walkthrough of
   `profiles.py`, including the real parity check plotted visually. Add a
   new numbered notebook per module as it lands, don't keep bolting onto
@@ -109,20 +115,32 @@ don't commit the run.
 - `src/dippa/background.py` — closed-form quadratic background fit. Done,
   tested against synthetic data and sanity-checked against the real
   reference fixture.
-- `src/dippa/fitting.py` — the per-peak fitter. Done, parity-verified the
-  strong way: starting from a genuinely bad guess (R²=-1.23), recovers
-  R²=0.994 against the real reference pattern with peak positions accurate
-  to ~0.001%. Architecture is local-decontaminated-window fitting, not
-  "freeze other peaks and fit against the whole pattern" — see `AUDIT.md`
-  §11 before touching this module, the reasoning isn't obvious from the
-  code alone. Known simplification: fits one peak at a time even when
-  windows overlap, relies on multiple passes rather than joint fitting for
-  close peaks — see `TODO.md`.
+- `src/dippa/fitting.py` — the per-peak fitter. Done, with a
+  single-fixture *recovery* result (deliberately not called "parity" — see
+  `AUDIT.md` §11/§15): starting from a rough perturbation of the known
+  answer (R²=-1.23), recovers R²=0.994, positions to ~0.001%, amplitudes
+  to a few percent, integral breadth to ≤15%. Per-side FWHM/eta are NOT
+  individually identified on this data (they trade off; one peak pins eta
+  at the 1.3 bound — real, diagnosed, reported via the result object, see
+  `AUDIT.md` §15). Returns `PatternFitResult` with per-peak diagnostics
+  and `aabcg` local backgrounds — check `.warnings` before consuming
+  widths downstream. Architecture is local-decontaminated-window fitting,
+  not "freeze other peaks and fit against the whole pattern" — see
+  `AUDIT.md` §11 before touching this module. Known simplification: fits
+  one peak at a time even when windows overlap (the original fits
+  window-sharing peaks jointly, with neighbour positions frozen but
+  shapes loosely bounded — `AUDIT.md` §10) — see `TODO.md`.
 - **Not started**: modified Williamson-Hall (`getWH.m` equivalent) and the
   contrast factor (cubic case, `Ch00(1 - q*H²)`) — these consume the
-  fitter's output, not needed to build the fitter itself.
-- Repo not yet pushed anywhere live — this baseline was built in a
-  sandboxed environment and handed off as a zip. No CI has run for real yet.
+  fitter's output, not needed to build the fitter itself. When building
+  mWH: `x` is reciprocal-space g in Å⁻¹ (`AUDIT.md` §13), the abscissa is
+  `X = g·√C` with g = *position*, and the breadth choice (side-averaged
+  FWHM vs integral breadth, instrumental subtraction) is documented from
+  source in `AUDIT.md` §4 — don't re-derive it.
+- Repo is live at `github.com/ThomasHSimm/dippa` with CI
+  (`.github/workflows/ci.yml`) and a Quarto docs publish workflow. The
+  original baseline was built sandboxed and handed off as a zip; this
+  section previously said "not pushed anywhere" — stale, corrected.
 
 ## House style
 

@@ -34,6 +34,16 @@ reference fit used here has ``alpha2 == 0`` in its ``genset.mat``, which
 would imply "fit the doublet" — but the fit only reproduces the real pattern
 (R² = 0.994) when no doublet is applied. Trust the reconstructed fit, not
 the settings file, when the two disagree.
+
+Coordinate convention (made explicit after review — see ``AUDIT.md`` §13):
+``x`` is the diffraction-vector magnitude **g = 2 sin θ / λ = 1/d, in
+Å⁻¹**, matching the original tool's reference data (whose peak positions
+reproduce the fcc austenite 1/d sequence for a ≈ 3.6 Å). The Kα doublet
+displacement below (``x0 * Δλ/λ̄``) is only valid in this coordinate —
+passing degrees 2θ would silently produce a wrong doublet spacing, and
+window widths like ``half_width=0.02`` are Å⁻¹ quantities. A typed pattern
+object carrying coordinate/units/wavelength is planned (TODO.md); until
+then this docstring is the contract.
 """
 
 from __future__ import annotations
@@ -110,7 +120,9 @@ def _single_component(x: FloatArray, params: FloatArray) -> FloatArray:
         return pseudo_voigt(x, *params)
     if params.shape[0] == 6:
         return asymmetric_pseudo_voigt(x, *params)
-    raise ValueError(f"expected 4 (symmetric) or 6 (asymmetric) peak parameters, got {params.shape[0]}")
+    raise ValueError(
+        f"expected 4 (symmetric) or 6 (asymmetric) peak parameters, got {params.shape[0]}"
+    )
 
 
 def evaluate_peak(x: FloatArray, params: FloatArray, tube: str | None = None) -> FloatArray:

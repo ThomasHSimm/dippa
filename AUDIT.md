@@ -73,6 +73,18 @@ worked example above.
 | Co | 1.789010 | 1.792900 |
 | Fe | 1.93604 | 1.93998 |
 
+**Correction (2026-07-18), resolving the Co discrepancy flagged in review:**
+the original source is internally inconsistent between its two profile
+paths. `pk_alpha.m` (symmetric) uses Co = 1.789010 / 1.792900, with
+1.78897 / 1.79285 present *as comments*; `pk_alpha_asymm.m` (asymmetric)
+uses Co = 1.78897 / 1.79285 as the live literals. Both pairs are therefore
+"exact original literals" — from different files. The port's
+`TUBE_WAVELENGTHS` carries the `pk_alpha_asymm.m` pair, which is the right
+choice for now because the asymmetric path is the one that has been
+verified against the reference fixture; if/when the symmetric doublet path
+gets its own real-data check, it may need the `pk_alpha.m` pair instead
+(doublet spacing differs by ~0.2% relative between the two).
+
 Three tubes only — anything else (Mo, Ag, synchrotron/neutron wavelength
 inputs used elsewhere in the same codebase, per the thesis) falls through
 with no explicit error. This is a real gap to fix, not carry over, in a
@@ -95,8 +107,34 @@ contrast-factor-corrected term:
 
 ```
 C = Aest * (1 - q*H2)      % q = contrast-factor curvature parameter
-X = g .* sqrt(C)           % g = fitted peak width (aa row 1)
+X = g .* sqrt(C)           % g = fitted peak POSITION (aa row 1)
 ```
+
+**Correction (2026-07-18):** an earlier draft of this section called `g`
+"the fitted peak width". That reversed the roles: `getWH.m` reads
+`g = aa(1,selected)` — row 1 is peak *position* (the diffraction-vector
+magnitude), consistent with the `aa` convention documented in §2 and in
+`profiles.py`. The contrast-corrected `X = g·√C` is the horizontal
+coordinate; peak *breadth* is the dependent quantity fit against it.
+
+**Which breadth enters mWH — answered from source (`getFW_IB.m`):** it's a
+user preference (`type_FWorIB`), one of two options, each averaged over the
+two sides for the asymmetric 6-parameter case:
+
+- `'FW'`: FWHM = `0.5*(aa(3,:) + aa(5,:))` (mean of right/left widths);
+- `'IB'`: integral breadth = `0.5*fw*(π·η + (1−η)·√(π/ln2))`, the
+  closed-form pseudo-Voigt integral breadth, with `fw` and `η` each
+  side-averaged first.
+
+**In both cases the instrumental breadth is subtracted before WH**:
+`delK = delK_R − delK_I`, where `delK_I` is the same quantity computed
+from the instrumental-standard fit (`fit_I.mat`), matched per-peak by
+nearest position. So instrument correction in the original is a simple
+per-peak breadth subtraction, not a deconvolution — cheap to port, but it
+means the original's WH/mWH path *always* assumes an instrumental fit
+exists. A sample-only port must either carry the subtraction as an option
+or clearly label its WH outputs as instrument-uncorrected (see §12 and
+`docs/roadmap.qmd`).
 
 and fits one of three functional forms selected by `type_sizestrain`:
 
@@ -230,11 +268,16 @@ stages, not one**:
 2. **Per-peak fitting** (`onepeak.m`, called once per peak): fit that one
    peak's position/amplitude/width(s)/eta(s), plus a small linear-only
    adjustment to the background's constant and slope terms — the quadratic
-   term from stage 1 is carried through unchanged. Bounds are very tight
-   (0.9999–1.0001× the starting value) on every peak *except* the one
-   currently being fit, which gets much looser bounds (±`bcg2peak`) — this
-   is the actual mechanism behind "individual peak fitting": freeze
-   everything else, let one peak move, repeat.
+   term from stage 1 is carried through unchanged. **Correction
+   (2026-07-18) to this section's earlier bounds description:** when other
+   peaks share the fitting window, only their *position* is frozen
+   (0.9999–1.0001× the starting value); their amplitude
+   (0.01×start … max(F)), widths (0.1×start … 1e-2 absolute) and eta
+   (0 … 1.3) remain loosely bounded and are fit jointly with the target
+   peak. The target peak gets position ±`bcg2peak`, amplitude 0.1×–10×,
+   widths up to `bcg2peak/1.5`, eta 0–1.3. The local linear background is
+   unbounded (±inf). So "freeze everything else" was only ever true of
+   neighbour *positions*, not their shapes.
 3. Peaks are fit one at a time this way, not simultaneously.
 
 This is good news for the port's design (already staged, now with sharper
@@ -305,16 +348,24 @@ to let close peaks refine each other iteratively — a Gauss-Seidel-style
 scheme rather than a joint fit. Fine for well-separated peaks, an open gap
 for tightly overlapping ones (see `TODO.md`).
 
-**Parity result, and this is the stronger claim than §9's:** §9 proved the
-*forward model* was correct by evaluating known parameters. This proves
-the *fitter* works — starting from a genuinely bad guess (R² = −1.23,
-worse than predicting the mean: positions jittered, amplitudes off by up
-to 50%, widths and etas set to generic placeholder values, background
-re-derived from the perturbed positions rather than taken from the known
-answer), three passes of `fit_pattern` recovers R² = 0.994 against the
-real measured pattern, with every peak position recovered to within
-~0.001% of the real saved value and amplitudes within a few percent. See
-`tests/test_fitting.py::test_fit_pattern_recovers_real_peaks_from_rough_guess`.
+**Recovery result — deliberately no longer called "parity" (reframed
+2026-07-18 after review):** §9 proved the *forward model* was correct by
+evaluating known parameters. This shows the *fitter* can find an answer —
+starting from a bad guess (R² = −1.23, worse than predicting the mean:
+positions jittered within the window, amplitudes scaled by ±50% of their
+true values, widths and etas set to generic placeholder values, background
+re-derived from the perturbed positions), three passes of `fit_pattern`
+recovers R² = 0.994 against the real measured pattern, with peak positions
+within ~0.001% and amplitudes within a few percent of the saved MATLAB
+values. Two honest limits on that claim: (1) the starting guess is a
+*perturbation of the known answer*, not an independent start — in
+particular the amplitude guess is derived from the true amplitude; (2)
+R² + position + amplitude recovery does not establish width/shape
+recovery, and widths/etas are exactly what feeds Williamson-Hall. See §15
+for what width/shape recovery actually looks like on this fixture, and
+`tests/test_fitting.py` for what is now asserted (including integral
+breadth). Genuine MATLAB parity — identical starts, per-parameter
+comparison against MATLAB's own fitted output — remains open (TODO.md).
 
 ## 12. Immediate implication for scope
 
@@ -328,3 +379,118 @@ modified Williamson-Hall** — deliberately excluding Warren-Averbach Fourier
 analysis, HCP, and instrumental deconvolution from v0.1, not because they're
 hard, but because each one doubles the number of code paths that need a
 parity check against the original MATLAB output before they can be trusted.
+
+## 13. Coordinate system of the reference data, made explicit (2026-07-18)
+
+Review flagged (correctly) that nothing documented what `x` actually is.
+Resolved by checking the reference fixture against physics: the ten peak
+positions (0.478, 0.553, 0.781, 0.916, 0.956, 1.105, 1.203, 1.235, 1.353,
+1.435) match `1/d` for the fcc reflection sequence
+(111, 200, 220, 311, 222, 400, 331, 420, 422, 511/333) of an austenitic
+lattice with a ≈ 3.6 Å — consistent with the SS316 stainless-steel
+provenance of the bundled data. So **`x` is the diffraction-vector
+magnitude g = 2 sin θ / λ = 1/d, in Å⁻¹**, and `half_width`/`bcg2peak`
+values like 0.02 are in Å⁻¹ too.
+
+A corroborating detail: the data extends to g ≈ 1.54 Å⁻¹, beyond the
+maximum reachable with Co Kα radiation (2/λ ≈ 1.12 Å⁻¹ at θ = 90°). This
+pattern cannot have been measured with the Co tube its `genset.mat`
+declares — consistent with (a) the §9 finding that no Kα doublet
+reproduces it, and (b) `genset.mat` also containing `wavelen = 1.542475`
+(a Cu-family number) alongside `tube = 'Co'`. Yet another independent
+confirmation that settings files describe GUI state, not data provenance.
+
+Port implication (still open, logged in TODO.md): the doublet displacement
+in `evaluate_peak` is only correct when `x` is this reciprocal-space
+coordinate. Nothing currently stops a user passing degrees 2θ. The API
+should eventually carry coordinate/units explicitly (e.g. a typed pattern
+object); until then the convention is documented in `profiles.py` and here.
+
+## 14. Window preference is `sizfit`, not `bcg2peak` (2026-07-18)
+
+`indivfit_GUI.m` selects the data window using `fitsiz =
+getDPPApref('sizfit')` — a *different* preference from `bcg2peak`, which
+`onepeak.m` uses for the target peak's position bound and width cap. The
+port had conflated the two into a single `half_width`. The bundled
+`genset.mat` stores `bcg2peak = 0.02` but no `sizfit` at all (read live
+from the GUI), so the window actually used to produce the reference fit is
+unknowable from the saved files — the same class of problem as the
+`alpha2` finding in §9. The port keeps a single `half_width` for now
+(documented in `fitting.py`); splitting it is only worth doing if a real
+fixture ever pins down a `sizfit` ≠ `bcg2peak` case.
+
+`indivfit_GUI.m` also confirms the local-background lifecycle: each peak's
+fit is *seeded* from the stored `aabcg` column and the fitted values are
+stored back (`aabcg(:,n) = aa(1:2,lenaa)`), persisting across refits. The
+port now does the same (see §15) — an earlier version fitted the local
+line and then discarded it, which review correctly flagged as diverging
+from the original and from the function's own docstring.
+
+## 15. Width/shape identifiability on the reference fixture, and structured results (2026-07-18)
+
+Review made the right criticism: R² + position recovery does not establish
+width/shape recovery, and breadth is what mWH consumes. Measured directly
+(fit from the standard rough guess, three passes, against the saved MATLAB
+values):
+
+- positions: ~0.001% — excellent;
+- amplitudes: ≤ 3% — good;
+- FWHM (per side): 0.4–28% error; eta: 2.5–100% error — **not recovered
+  parameter-by-parameter**;
+- integral breadth (the side-averaged pseudo-Voigt closed form that
+  `getFW_IB.m` feeds to WH): within ~15% on every peak, mostly ≤ 8%.
+
+The FWHM/eta pairs trade off against each other (and against the local
+background) with little residual cost — they are not individually
+identified by this data at this window size. The worst case is the
+weakest, last peak (index 9): its `eta_right` lands exactly on the 1.3
+upper bound (the original tool's own bound, from `onepeak.m`). This is
+*not* a rough-guess artefact — refitting peak 9 starting from the exact
+MATLAB answer also pegs `eta_right` at 1.3, at every window half-width
+tried (0.008–0.03), and the pegged solution has genuinely lower SSE in
+this objective than the MATLAB parameters. The MATLAB answer is a
+different local minimum (its optimiser was seeded differently, via the
+persisted `aabcg`, with an unknowable `sizfit` window — §14 — and the
+saved fit is whatever the user interactively accepted).
+
+Consequences, now implemented:
+
+- `fit_one_peak` / `fit_pattern` return structured results
+  (`PeakFitResult` / `PatternFitResult`) carrying optimiser
+  success/message, cost, evaluation count, bound-hit flags per named
+  parameter, and the fitted local backgrounds in the original's `aabcg`
+  convention. A fit with a parameter pinned at a bound is no longer
+  silently indistinguishable from a clean one — this is the §3-of-AGENTS
+  "uncertainty as first-class output" principle applied to the fitter.
+- `tests/test_fitting.py` asserts integral-breadth recovery (15%
+  envelope, documented not aspirational), asserts the peak-9 bound hit is
+  *reported*, and deliberately does not assert per-parameter FWHM/eta
+  agreement it cannot deliver.
+- Anything consuming widths downstream (mWH, when built) should check
+  `result.warnings` / `result.all_clean` and prefer integral breadth over
+  raw per-side FWHM, since that is both the better-identified quantity
+  and one of the two the original tool itself uses (§4).
+
+## 16. Phase 3 verification: dippa re-fit of all 9 ni_combo.mat samples (2026-07-19)
+
+All 9 samples from `ni_combo.mat` were re-fit using dippa's `fit_pattern`
+with stored MATLAB parameters as starting guesses. Result:
+
+- **Numerical stability**: R² changes < 0.00004 (mean: -0.000009), confirms
+  the fitting algorithm converges to very similar local minima.
+- **Parameter recovery**: Position changes < 0.00003 Å⁻¹ (mean: < 10⁻⁶), 
+  amplitude changes < 16 counts (<0.1% relative), FWHM changes < 0.000015
+  Å⁻¹ (<0.1% relative). When starting from MATLAB parameters, dippa
+  produces essentially identical results.
+- **Minor bound violations**: Only sample 0 (niHmid_halfpc, lowest SNR)
+  hit bounds during fitting (eta_left pegged at 1.3 for peaks 3 and 4),
+  consistent with the width/shape non-identifiability documented in §15.
+
+This verifies that:
+1. The port's implementation of `fit_pattern` is algorithmically sound.
+2. The MATLAB `.mat` file extraction (via `matlab_io.py`) correctly
+   preserves all parameter values.
+3. The coordinate system assumption (g = 2sinθ/λ, tube='Co' for doublet) is
+   consistent with how the reference data was produced.
+
+Next phase (phase 4): port `tsinterpl.m` time-interpolation to Python.

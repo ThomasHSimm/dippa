@@ -8,21 +8,57 @@ TODO is worse than none.
 
 ## Now / next up
 
-- [x] **The fitter.** Built as `background.py` + `fitting.py`. Parity
-      result: recovers R²=0.994 on the real reference pattern from a
-      starting guess with R²=-1.23. See `AUDIT.md` §11.
+- [x] **The fitter.** Built as `background.py` + `fitting.py`.
+      Single-fixture recovery result (not MATLAB parity — see `AUDIT.md`
+      §11/§15): R²=0.994 from a rough start (R²=-1.23), positions ~0.001%,
+      amplitudes ≤3%, integral breadth ≤15%. Per-side FWHM/eta not
+      individually identified on this data.
+- [x] **Structured fit results** (`PeakFitResult`/`PatternFitResult`):
+      optimiser success, cost, bound-hit flags, local backgrounds in the
+      original's `aabcg` convention (persisted across passes and seeded,
+      matching `indivfit_GUI.m`). Added after review flagged that the
+      bare-array API violated the uncertainty-first principle and that
+      local backgrounds were fitted then discarded.
 - [ ] Modified Williamson-Hall (`getWH.m` equivalent) — mWH-1/2/3 per
-      Equation 1 / Table 2 of the 2016 Mater. Des. paper.
+      Equation 1 / Table 2 of the 2016 Mater. Des. paper. Prerequisites
+      now settled from source (`AUDIT.md` §4): abscissa `X = g·√C` with
+      g = peak *position*; breadth is side-averaged FWHM or integral
+      breadth (`getFW_IB.m`), and the original always subtracts the
+      instrumental breadth — v0.1 output must be labelled
+      instrument-uncorrected until that path exists. Prefer integral
+      breadth and check `PatternFitResult.warnings` before consuming.
 - [ ] Contrast factor, cubic case only: `Ch00 * (1 - q*H²)`.
 - [x] Decided (not "silently picked"): bound-setting logic in
       `fitting.py` is simplified from `onepeak.m`'s, not a literal
       transcription — documented in the module docstring and `AUDIT.md`
-      §11. No "other peaks in this window" freezing logic, because
-      decontamination already removes their contribution before the local
-      fit runs.
+      §10/§11. No joint fitting of window-sharing peaks (the original
+      freezes neighbour positions but fits their shapes jointly).
 
 ## Open technical questions (not blockers, but need resolving before they bite)
 
+- [ ] **Genuine MATLAB parity for the fitter** — the current test is
+      single-fixture *recovery* from a perturbed-truth start. Real parity
+      needs MATLAB and Python runs from identical starting parameters,
+      per-peak width/shape/amplitude/background comparison with tolerances
+      sized by downstream effect, and multiple starting points. Requires
+      running the original tool, so parked until MATLAB access.
+- [ ] **Peak 9 eta identifiability** — the weakest peak pins `eta_right`
+      at the 1.3 bound even when refit from the exact MATLAB answer, at
+      every window width tried; the pegged solution beats the MATLAB
+      values on SSE in this objective (`AUDIT.md` §15). Now *reported* via
+      diagnostics rather than silent. Options if it needs fixing rather
+      than flagging: joint refit with a robust loss, penalising η > 1,
+      or accepting integral breadth (stable to ≤12%) as the deliverable.
+- [ ] **Coordinate/units are convention, not code** — `x` is g in Å⁻¹
+      (`AUDIT.md` §13) but nothing stops a caller passing 2θ degrees,
+      which would silently break the doublet displacement and every
+      half-width default. A typed pattern object (coordinate kind, units,
+      wavelength, intensities) is the eventual fix; before the public API
+      settles, not after.
+- [ ] **`sizfit` vs `bcg2peak`** — the original uses two preferences
+      (data-window half-width vs bounds/width-cap); the port conflates
+      them into one `half_width` (`AUDIT.md` §14). Only worth splitting if
+      a fixture ever pins down a case where they differ.
 - [ ] The **symmetric** (4-parameter, non-asymmetric) peak case has never
       been parity-tested against real data — only the 6-parameter
       asymmetric case has (R²=0.994, see `AUDIT.md` §9). Don't assume it
@@ -52,11 +88,16 @@ TODO is worse than none.
       background estimation run *before* peak-finding rather than after.
 - [ ] **Rachinger-style Kα2 stripping** (1948, refined 1975, still being
       revisited as recently as 2026) as an alternative to fitting the
-      doublet directly during peak fitting. Different philosophy, not a
-      strict improvement — Rachinger doesn't assume Kα1/Kα2 share a peak
-      shape (current approach does), but is a raw-data preprocessing step
-      with its own known distortions. Needs its own comparison, not a
-      swap-in.
+      doublet directly during peak fitting. Different philosophy
+      (preprocessing vs model fitting), not a strict improvement — and
+      *not* assumption-free: classical Rachinger assumes the Kα1 and Kα2
+      components share the same line-profile shape, a fixed intensity
+      ratio (≈2:1) and a known angle-dependent separation, i.e. much the
+      same physical assumptions as the current linked-doublet fit, applied
+      to raw data instead of inside the model. (An earlier note here
+      claimed Rachinger avoids the same-shape assumption — wrong,
+      corrected 2026-07-18.) Known distortions on the Kα2 side. Needs its
+      own comparison, not a swap-in.
 - [ ] **Variance-B method** — real accuracy (comparable to the best
       Fourier methods) but historically unreliable (2/15 peaks converged
       in the thesis). Likely explanation: needs synchrotron/neutron-grade
@@ -137,6 +178,7 @@ TODO is worse than none.
       items) not.
 - [x] PyPI name `dippa` — confirmed available, low risk of confusion
       (the existing `dppa` package is an unrelated protein-analysis tool).
-- [ ] Domain name — deliberately not spending anything on this yet;
-      GitHub Pages (`thomashsimm.github.io/dippa`) is the front door until
-      there's a working v0.1 worth pointing people at.
+- [x] Domain — dmata.co.uk re-purchased (see "Repo structure" above);
+      GitHub Pages (`thomashsimm.github.io/dippa`) stays the front door
+      for Dippa's own docs until there's a working v0.1, and the earlier
+      "not spending anything on a domain" note here is superseded.

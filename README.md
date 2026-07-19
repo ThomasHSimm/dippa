@@ -1,14 +1,21 @@
 # Dippa
 
-Diffraction peak profile analysis (DPPA) in Python — a rebuild of
-[ThomasHSimm/DPPA](https://github.com/ThomasHSimm/DPPA), a MATLAB tool for
-Warren–Averbach, Williamson–Hall, and modified Williamson–Hall analysis of
-plastically deformed metals.
+An early-stage Python package for reproducible diffraction peak fitting
+and (in progress) modified Williamson-Hall analysis of plastically
+deformed cubic metals. It rebuilds selected methods from
+[ThomasHSimm/DPPA](https://github.com/ThomasHSimm/DPPA) — the original
+MATLAB DPPA tool — as independently testable numerical components,
+cross-checked against the original tool's own saved reference data.
 
-**Status: pre-alpha, scaffold only.** No fitting or analysis code has been
-ported yet. Nothing here should be used for real analysis. See
+**Status: pre-alpha.** Implemented and tested so far: legacy `.mat` I/O,
+the pseudo-Voigt profile functions (symmetric, asymmetric, Kα doublet),
+quadratic background estimation, and the per-peak local-window fitter with
+structured diagnostics. Not yet implemented: contrast factors and modified
+Williamson-Hall — so **nothing here produces microstructural outputs yet**,
+and nothing should be used for real analysis. See
 [`AUDIT.md`](./AUDIT.md) for the technical audit of the original MATLAB
-source that this port is based on.
+source, including what has been verified against real data and what
+hasn't.
 
 ## Why this exists
 
@@ -26,28 +33,39 @@ The original DPPA/BIGdippa MATLAB app implements methods published in:
 The MATLAB code works but is a single-user GUI app: no automated tests, no
 package boundary between fitting logic and GUI callbacks, hardcoded paths,
 and mixed global/preference-based state. This project separates the
-scientific core (testable, GUI-independent) from an optional interactive
-front end, matching the original app's workflow (`BIGdippa` → peak fitting,
-`dippaFC` → Fourier/Williamson-Hall analysis on the fitted peaks).
+scientific core (testable, GUI-independent) from any future front end,
+matching the original app's workflow (`BIGdippa` → peak fitting,
+`dippaFC` → Williamson-Hall/Fourier analysis on the fitted peaks).
 
-## Scope for v0.1 (proposed, not yet built)
+## Scope for v0.1
 
-- Load a diffraction pattern and an instrumental-standard pattern.
-- Fit a set of peaks with the pseudo-Voigt profile used in the original tool
-  (`pv_tv_aa` / `pk_alpha` / `pk_voigt2`), including Kα1/Kα2 doublet handling
-  for Cu/Co/Fe tubes.
-- Reproduce (modified) Williamson-Hall analysis (`getWH.m`: variants A/B/C).
-- Reproduce one worked example from the original repo's bundled `.mat`
-  reference files within a documented numerical tolerance.
-- No GUI, no Warren-Averbach Fourier analysis, no HCP/anisotropic contrast
-  factors, no CMWP-equivalent functionality yet — see `AUDIT.md` for why
-  these are deferred.
+- Input: a diffraction pattern already expressed in the documented
+  reciprocal-space coordinate (g = 2 sin θ / λ, in Å⁻¹ — see `AUDIT.md`
+  §13), with user-supplied approximate peak positions.
+- Pseudo-Voigt peak fitting matching the original tool (`pv_tv_aa` /
+  `pk_alpha` lineage), including optional Kα1/Kα2 doublet handling for
+  Cu/Co/Fe tubes, with per-peak fit diagnostics (optimiser status,
+  bound-hit flags, local backgrounds) as first-class output.
+- Cubic contrast factors and modified Williamson-Hall (`getWH.m`:
+  variants A/B/C) — in progress.
+- Reproduction of a worked example from the original repo's bundled
+  `.mat` reference files within documented numerical tolerances.
+- **Sample patterns only in v0.1** — no instrumental-standard handling
+  yet. The original tool always subtracts an instrumental breadth before
+  Williamson-Hall (`AUDIT.md` §4), so until that lands, any WH output
+  from this package is instrument-uncorrected and will be labelled as
+  such: a methodological preview, not analysis-ready numbers.
+- No GUI, no Warren-Averbach Fourier analysis, no HCP/anisotropic
+  contrast factors, no CMWP-equivalent functionality — see
+  `docs/roadmap.qmd` for why each is deferred.
+
+Future scope (not in v0.1, not promised for a date): Warren-Averbach,
+HCP symmetry, instrumental correction, variance methods, an optional GUI.
 
 ## Install (not yet published)
 
 ```bash
 pip install dippa           # not yet on PyPI — name is reserved/available
-pip install "dippa[gui]"    # future: adds PySide6 GUI
 ```
 
 ## Documentation
@@ -59,9 +77,11 @@ the first `docs/**` change lands on `main`).
 
 ## Examples
 
-`notebooks/01_profiles_walkthrough.ipynb` — a runnable walkthrough of the
-peak-shape functions, including the real parity check against the original
-tool's own saved output, plotted. Requires the `examples` extra:
+Runnable walkthroughs in `notebooks/` — `01_profiles_walkthrough.ipynb`
+(peak-shape functions, including the real forward-model check against the
+original tool's saved output) and `02_fitting_walkthrough.ipynb` (the
+per-peak fitter recovering a real pattern from a rough start). Requires
+the `examples` extra:
 
 ```bash
 pip install -e ".[examples]"

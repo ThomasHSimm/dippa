@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "dippa"
 version = "0.0.1.dev0"
-description = "Diffraction peak profile analysis in Python (Warren-Averbach, Williamson-Hall, modified Williamson-Hall)"
+description = "Diffraction peak profile analysis in Python: reproducible peak fitting and modified Williamson-Hall for plastically deformed cubic metals (pre-alpha)"
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [{ name = "Thomas H. Simm" }]

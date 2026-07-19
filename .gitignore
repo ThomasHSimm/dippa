@@ -11,3 +11,5 @@ build/
 .ruff_cache/
 _site/
 .quarto/
+notebooks/old/
+data/

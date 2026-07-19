@@ -16,7 +16,10 @@ documentation or memory of the codebase.
 This audit describes what the *code* does — file structure, data shapes,
 which equations are implemented. It does not independently verify that the
 underlying physics or fitting behaviour is correct; that's the job of the
-parity-testing step described in the [roadmap](roadmap.qmd), which hasn't
+verification steps described in the [roadmap](roadmap.qmd). So far: the
+profile functions are forward-model-verified against the original tool's
+saved fit (R² = 0.994), and the fitter has a single-fixture recovery test.
+Full MATLAB parity (identical starts, per-parameter comparison) has not
 happened yet.
 :::
 
@@ -63,10 +66,15 @@ hardcodes wavelengths for three tubes only:
 | Tube | λα1 (Å) | λα2 (Å) |
 |---|---|---|
 | Cu | 1.54056 | 1.54439 |
-| Co | 1.789010 | 1.792900 |
+| Co | 1.789010 / 1.78897 | 1.792900 / 1.79285 |
 | Fe | 1.93604 | 1.93998 |
 
-Anything else falls through with no explicit error. A port should take
+The two Co pairs are not a typo here: the original source is internally
+inconsistent — `pk_alpha.m` (symmetric path) uses the first pair,
+`pk_alpha_asymm.m` (asymmetric path) uses the second, each with the other
+present as a comment. The port carries the asymmetric-path pair, which is
+the path verified against real data. Anything other than the three tubes
+falls through with no explicit error. A port should take
 wavelength as an explicit input, with these three pairs as one built-in
 table among others, rather than reproducing the tube-name lookup as the
 only path.
@@ -78,8 +86,13 @@ weighted), matching the standard Ungár/Borbély formulation:
 
 ```
 C = Aest * (1 - q*H2)
-X = g .* sqrt(C)
+X = g .* sqrt(C)      # g = fitted peak *position* (diffraction-vector magnitude)
 ```
+
+The contrast-corrected `X` is the horizontal coordinate; peak *breadth* —
+side-averaged FWHM or the closed-form pseudo-Voigt integral breadth,
+selectable in the original (`getFW_IB.m`), with the instrumental breadth
+subtracted — is the dependent quantity fit against it.
 
 fit to one of three selectable forms — linear (`size + strain·X`),
 root-sum-square (`sqrt(size² + strain²·X²)`), or quadratic-in-X

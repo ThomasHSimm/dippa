@@ -138,7 +138,9 @@ def test_parity_against_original_tool_no_doublet():
     ss_tot = np.sum((y - y.mean()) ** 2)
     r_squared = 1 - ss_res / ss_tot
 
-    assert r_squared > 0.99, f"expected R^2 > 0.99 against the real reference pattern, got {r_squared:.4f}"
+    assert r_squared > 0.99, (
+        f"expected R^2 > 0.99 against the real reference pattern, got {r_squared:.4f}"
+    )
 
 
 def test_parity_with_doublet_is_much_worse():
@@ -152,4 +154,6 @@ def test_parity_with_doublet_is_much_worse():
     ss_tot = np.sum((y - y.mean()) ** 2)
     r_squared = 1 - ss_res / ss_tot
 
-    assert r_squared < 0.8, f"expected the doublet-applied fit to be clearly worse, got R^2={r_squared:.4f}"
+    assert r_squared < 0.8, (
+        f"expected the doublet-applied fit to be clearly worse, got R^2={r_squared:.4f}"
+    )

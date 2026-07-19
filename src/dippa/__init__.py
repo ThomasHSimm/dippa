@@ -4,4 +4,20 @@ Pre-alpha. See AUDIT.md in the repository root for the state of the port
 from the original MATLAB tool (github.com/ThomasHSimm/DPPA).
 """
 
+from dippa.matlab_io import (
+    MatlabSample,
+    extract_struct_array,
+    load_matlab_samples,
+    squeeze_value,
+    struct_to_dict,
+)
+
 __version__ = "0.0.1.dev0"
+
+__all__ = [
+    "MatlabSample",
+    "extract_struct_array",
+    "load_matlab_samples",
+    "squeeze_value",
+    "struct_to_dict",
+]

@@ -4,18 +4,22 @@ subtitle: "Diffraction peak profile analysis in Python"
 ---
 
 ::: {.lead}
-A from-scratch Python rebuild of published Warren-Averbach and (modified)
-Williamson-Hall peak-profile methods, currently in pre-alpha: the packaging
-and I/O scaffold exists, the fitting and analysis logic does not yet.
+A from-scratch Python rebuild of published diffraction peak-profile
+analysis methods, currently in pre-alpha: legacy I/O, the pseudo-Voigt
+profile functions, background estimation and the per-peak fitter exist and
+are tested against the original tool's own saved reference data; contrast
+factors and modified Williamson-Hall do not exist yet, so no
+microstructural outputs are produced.
 :::
 
 ## Status
 
 This site describes a project in progress, not a released tool. Nothing
-here has been validated for real analysis. See the [source
-audit](audit.qmd) for what has actually been inspected in the original
-MATLAB codebase, and the [roadmap](roadmap.qmd) for what's deliberately
-excluded from v0.1 and why.
+here has been validated for real analysis: the fitter's checks are
+single-fixture recovery tests, not full MATLAB parity, and Williamson-Hall
+is not yet implemented. See the [source audit](audit.qmd) for what has
+actually been inspected and verified, and the [roadmap](roadmap.qmd) for
+what's deliberately excluded from v0.1 and why.
 
 ## Origin
 
