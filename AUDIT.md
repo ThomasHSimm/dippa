@@ -546,3 +546,47 @@ This scan has one constant 0.030° step, so it does not validate
 `merge_scans` against a real multi-step overlap. The current overlap test
 uses slices of the real scan to exercise the policy; validation against a
 genuine peak-window scan is tracked in `TODO.md`.
+
+## 19. Cubic contrast and Williamson–Hall trace (2026-07-19)
+
+The implemented path is traced directly through `Hsq.m`, `getFW_IB.m`,
+`getWH.m`, and `dippa_fitWH.m`:
+
+- `Hsq.m` defines the cubic reflection invariant H² used by
+  `C = ch00·(1−q·H²)`. `ch00` is not derived by that calculation: the live
+  original path reads it from the GUI preference `WHpref.chk0`. The Python
+  API therefore requires both `ch00` and q explicitly and requires an HKL
+  assignment alongside the fitted peak array; it never auto-indexes peaks.
+- `getFW_IB.m` supplies side-averaged FWHM/integral-breadth handling and
+  nearest-position matching to the instrumental fit. The original applies
+  the linear subtraction `K_R−K_I`, corresponding to Lorentzian breadth
+  addition. The port makes flagged-fit and nonpositive-correction policies
+  explicit and reports every excluded peak.
+- `getWH.m` contains exactly three model branches: mwhA, mwhB, and mwhC.
+  There is no plain-WH branch and no three-term model in that source.
+  Classical WH is a documented Python extension using the mwhA path with
+  q fixed to zero.
+- `dippa_fitWH.m` contains four optimisation backends across its switches:
+  `lsqcurvefit`, `patternsearch`, a genetic algorithm, and simulated
+  annealing. This port implements one backend (`scipy.optimize.least_squares`)
+  and adds Jacobian covariance, 95% confidence intervals, residuals, DoF,
+  boundary warnings, and explicit low-DoF warnings. The original GUI's
+  second-phase selection path is not ported; one explicit phase/reflection
+  list is fitted at a time.
+
+`4. RES/Fourier/SS316_logINDI_RES.mat` provides an exact independent
+contrast-factor oracle. `FCres_set(1)` is a WA-track result
+(`dppFCpref.type_sizestrain = 'logWA'`), not a saved mWH fit, so it is used
+only for contrast parity. It stores `chk0 = 0.317`,
+`q = 2.7131932196981099`, and the five C values for
+(111)/(200)/(220)/(311)/(222), all reproduced by `contrast_cubic` to
+floating-point precision. The same saved preferences record
+`qscrew = 2.47` and `qedge = 1.718`; those provenance values are not used
+as fitted-q truth in tests or the nickel demonstration.
+
+`notebooks/04_williamson_hall.ipynb` executes the complete nine-sample
+nickel path with integral breadth and each sample's stored instrumental fit.
+Its tables, trends, confidence intervals, and plots are computed at runtime.
+The low-SNR half-percent sample demonstrates both safety policies: (111) is
+excluded for nonpositive corrected breadth and (311)/(222) for eta bound
+hits, leaving two retained points and therefore no three-parameter mWH fit.

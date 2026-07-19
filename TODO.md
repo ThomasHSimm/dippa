@@ -52,15 +52,24 @@ TODO is worse than none.
       - [x] Validate against ni_combo.mat (grid uniformity to machine precision)
 
 ### Future (Phases 5+)
-- [ ] Modified Williamson-Hall (`getWH.m` equivalent) — mWH-1/2/3 per
+- [x] Modified Williamson-Hall (`getWH.m` equivalent) — mWH-1/2/3 per
       Equation 1 / Table 2 of the 2016 Mater. Des. paper. Prerequisites
       now settled from source (`AUDIT.md` §4): abscissa `X = g·√C` with
       g = peak *position*; breadth is side-averaged FWHM or integral
       breadth (`getFW_IB.m`), and the original always subtracts the
-      instrumental breadth — v0.1 output must be labelled
-      instrument-uncorrected until that path exists. Prefer integral
-      breadth and check `PatternFitResult.warnings` before consuming.
-- [ ] Contrast factor, cubic case only: `Ch00 * (1 - q*H²)`.
+      instrumental breadth. Implemented with explicit exclusion policies,
+      covariance/CIs, and integral breadth as the default.
+- [x] Contrast factor, cubic case only: `Ch00 * (1 - q*H²)`; exact stored
+      C-vector parity against `SS316_logINDI_RES.mat`.
+- [ ] **Second-material end-to-end candidate** — run the staged breadth +
+      mWH workflow against `data/SSnew_interpBCG_fit.mat` once its peak and
+      instrument-fit provenance is pinned down.
+- [ ] **Paper-value comparison (2016 Mater. Des. tables) — author task.**
+      Compare computed nickel strain-series trends and intervals manually;
+      do not encode literature q values as test truth.
+- [ ] **Warren–Averbach remains out of scope.** The SS316 WA-track result is
+      used only as a stored contrast-factor parity oracle, not as authority
+      to port the Fourier workflow.
 - [x] Decided (not "silently picked"): bound-setting logic in
       `fitting.py` is simplified from `onepeak.m`'s, not a literal
       transcription — documented in the module docstring and `AUDIT.md`

@@ -90,7 +90,10 @@ against the original tool's output, not a transpilation.
 
 `notebooks/` holds runnable examples — `01_profiles_walkthrough.ipynb`
 (profile functions) and `02_fitting_walkthrough.ipynb` (the fitter,
-including reading the fit diagnostics).
+including reading the fit diagnostics). `03_fitting_demonstration.ipynb`
+checks rough-start recovery across all nine nickel samples, and
+`04_williamson_hall.ipynb` demonstrates integral-breadth instrumental
+subtraction plus classical/mwhA/mwhB/mwhC fitting.
 These serve two purposes at once: a fast manual sanity-check while developing
 (rerun the notebook, eyeball the plots, no need to reach for a debugger for
 "does this look right") and, once the API stabilises, the first thing a new
@@ -130,13 +133,15 @@ don't commit the run.
   one peak at a time even when windows overlap (the original fits
   window-sharing peaks jointly, with neighbour positions frozen but
   shapes loosely bounded — `AUDIT.md` §10) — see `TODO.md`.
-- **Not started**: modified Williamson-Hall (`getWH.m` equivalent) and the
-  contrast factor (cubic case, `Ch00(1 - q*H²)`) — these consume the
-  fitter's output, not needed to build the fitter itself. When building
-  mWH: `x` is reciprocal-space g in Å⁻¹ (`AUDIT.md` §13), the abscissa is
-  `X = g·√C` with g = *position*, and the breadth choice (side-averaged
-  FWHM vs integral breadth, instrumental subtraction) is documented from
-  source in `AUDIT.md` §4 — don't re-derive it.
+- `src/dippa/contrast.py`, `breadth.py`, `williamson_hall.py` — cubic
+  contrast factors, FW/IB breadths with nearest-position instrumental
+  subtraction, and classical/mwhA/mwhB/mwhC fitting. Done, with typed
+  explicit HKLs, exclusion policies for flagged/nonpositive breadths,
+  Jacobian covariance and 95% confidence intervals. The contrast factor is
+  parity-tested against the five stored C values in
+  `SS316_logINDI_RES.mat`; see `AUDIT.md` §19. The nine-sample nickel
+  demonstration reports that the half-percent sample retains only two
+  trustworthy peaks and is not forced through a three-parameter fit.
 - Repo is live at `github.com/ThomasHSimm/dippa` with CI
   (`.github/workflows/ci.yml`) and a Quarto docs publish workflow. The
   original baseline was built sandboxed and handed off as a zip; this
