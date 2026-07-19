@@ -9,7 +9,6 @@ Interpolation). Used in the original tool for data preprocessing before fitting.
 from __future__ import annotations
 
 import numpy as np
-from scipy.interpolate import CubicHermiteSpline
 from numpy.typing import NDArray
 
 FloatArray = NDArray[np.float64]

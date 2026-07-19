@@ -1,6 +1,5 @@
 """Tests for regrid module (tsinterpl.m port)."""
 
-from pathlib import Path
 
 import numpy as np
 import pytest

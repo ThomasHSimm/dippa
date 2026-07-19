@@ -25,9 +25,9 @@ TODO is worse than none.
       bare-array API violated the uncertainty-first principle and that
       local backgrounds were fitted then discarded.
 - [x] **Phase 3 validation**: All 9 ni_combo.mat samples re-fit with dippa
-      starting from stored MATLAB parameters. Result: R² changes < 0.00004,
-      peak parameters < 0.1% relative error. Confirms port correctness
-      (see `AUDIT.md` §16).
+      from rough reproducible starts. Position, amplitude, and integral-
+      breadth recovery are documented in `AUDIT.md` §16 and the fitting
+      demonstration notebook.
 ### Completed (Phase 2 notebook documentation)
 
 - [x] **Demonstration notebook fixes** (`notebooks/01_fitting_demonstration.ipynb`):
@@ -69,6 +69,11 @@ TODO is worse than none.
 
 ## Open technical questions (not blockers, but need resolving before they bite)
 
+- [ ] **Real multi-step overlap fixture for `merge_scans`** — the committed
+      `thom_co7` instrumental-standard scan has one constant step. The merge
+      policy is tested with overlapping slices of that real scan, but needs
+      validation against a genuine fine-step peak-window plus coarse survey
+      scan once one is available.
 - [ ] **Genuine MATLAB parity for the fitter** — the current test is
       single-fixture *recovery* from a perturbed-truth start. Real parity
       needs MATLAB and Python runs from identical starting parameters,

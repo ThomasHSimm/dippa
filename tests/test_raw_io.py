@@ -29,6 +29,30 @@ def test_udf_metadata_and_loadb_gui_cobalt_wavelength():
     assert scan.wavelength == pytest.approx(1.79091)
 
 
+def test_thom_co7_regrids_to_ni_combo_instrument_standard():
+    """Pin the real UDF against ``ni_combo.mat``'s stored ``data_I``."""
+    scan = load_udf(RAW_DATA / "thom_co7.UDF")
+    regridded = regrid_to_g(scan.data, wavelength=1.79091)
+
+    assert regridded.shape == (11263, 2)
+    assert regridded[0, 0] == pytest.approx(0.42740)
+    assert regridded[-1, 0] == pytest.approx(0.99050)
+
+    # Hardcoded from the shared data_I array stored in data/ni_combo.mat.
+    expected = np.array(
+        [
+            [0, 0.42740, 591.0898060993476],
+            [1000, 0.47740, 723.1933772602516],
+            [5000, 0.67740, 623.9292380641671],
+            [7188, 0.78680, 29469.414548638542],
+            [11262, 0.99050, 756.0],
+        ]
+    )
+    indices = expected[:, 0].astype(int)
+    np.testing.assert_allclose(regridded[indices, 0], expected[:, 1], rtol=0.0, atol=1e-14)
+    np.testing.assert_allclose(regridded[indices, 1], expected[:, 2], rtol=1e-12, atol=1e-9)
+
+
 def test_merge_real_scan_overlap_prefers_finer_segment_then_regrids():
     raw = load_dat(RAW_DATA / "thom_co7.dat")
     coarse = raw[:201:2]

@@ -525,3 +525,24 @@ Python as `src/dippa/regrid.py`. Functionality:
 - Integration tests (synthetic workflows)
 
 **Total test suite**: 59 passing (38 existing + 21 new regrid).
+
+## 18. Raw instrumental-standard provenance (2026-07-19)
+
+`thom_co7.UDF` is the instrumental-standard scan behind the `data_I` array
+shared by all nine samples in `ni_combo.mat`. Loading that UDF and passing
+its angle/count array to `regrid_to_g` with the `loadb_GUI.m` Co wavelength
+of 1.79091 Å reproduces the stored 11,263-point grid exactly (0.42740 to
+0.99050 Å⁻¹ at 5×10⁻⁵ Å⁻¹ spacing) and reproduces its intensities to
+floating-point interpolation roundoff (maximum absolute difference
+1.11×10⁻⁸ counts in the current SciPy run). Five stored `data_I` values,
+including a high-intensity peak point, are pinned in `tests/test_raw_io.py`.
+
+The committed `thom_co7.dat` is the byte-matching Perl-converted twin of
+the UDF from the original DPPA bundle. It remains alongside the UDF as the
+parser cross-check fixture for the angle/count reconstruction performed by
+`udfcon.pl`.
+
+This scan has one constant 0.030° step, so it does not validate
+`merge_scans` against a real multi-step overlap. The current overlap test
+uses slices of the real scan to exercise the policy; validation against a
+genuine peak-window scan is tracked in `TODO.md`.
