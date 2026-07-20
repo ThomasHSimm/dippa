@@ -41,6 +41,7 @@ def test_synthetic_round_trip_recovers_parameters_within_ci(variant):
         0.317,
         variant=variant,
         initial=(1.2, 0.001, 0.003),
+        classical_mode="all",
     )
 
     assert result.success
@@ -84,5 +85,50 @@ def test_low_dof_and_exclusions_are_reported():
 
 
 def test_too_few_retained_peaks_raises():
-    with pytest.raises(ValueError, match="at least 3"):
+    with pytest.raises(ValueError, match="insufficient clean peaks .* need 3 free parameters"):
         fit_williamson_hall(_breadths([0.001, 0.002]), BINDING, 0.317, variant="mwhA")
+
+
+def test_default_classical_presentation_selects_equal_h2_family():
+    parameters = WHParameters(q=0.0, size=0.001, strain=0.004)
+    exact = williamson_hall_model(G[:5], BINDING.select(range(5)), 0.317, parameters, "classical")
+    result = fit_williamson_hall(_breadths(exact), BINDING, 0.317, variant="classical")
+    assert result.classical_mode == "family"
+    assert result.n_points == 2
+    assert result.x.shape == result.delta_k.shape == (2,)
+
+
+def test_custom_bounds_and_structured_bound_hits():
+    parameters = WHParameters(q=1.5, size=0.002, strain=0.004)
+    exact = williamson_hall_model(G[:5], BINDING.select(range(5)), 0.317, parameters, "mwhA")
+    result = fit_williamson_hall(
+        _breadths(exact),
+        BINDING,
+        0.317,
+        variant="mwhA",
+        size_bounds=(-0.001, 0.001),
+        strain_bounds=(0.0, 0.01),
+    )
+    assert "size" in result.at_upper_bound
+    assert result.at_lower_bound == ()
+
+
+def test_insufficient_clean_peaks_reports_all_exclusion_reasons():
+    excluded = (
+        ExcludedPeak(0, ("nonpositive delta_k",)),
+        ExcludedPeak(3, ("at upper bound: eta_left",)),
+        ExcludedPeak(4, ("at upper bound: eta_right",)),
+    )
+    five_peak_binding = BINDING.select(range(5))
+    with pytest.raises(ValueError) as error:
+        fit_williamson_hall(
+            _breadths([0.001, 0.002], excluded),
+            five_peak_binding,
+            0.317,
+            variant="mwhA",
+        )
+    message = str(error.value)
+    assert "insufficient clean peaks (2 of 5 after exclusions)" in message
+    assert "nonpositive delta_k" in message
+    assert "at upper bound: eta_left" in message
+    assert "at upper bound: eta_right" in message

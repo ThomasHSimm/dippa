@@ -1,6 +1,5 @@
 """Tests for the object-oriented shell; numerical fitting remains tested in test_fitting.py."""
 
-import matplotlib
 import numpy as np
 import pytest
 
@@ -8,9 +7,6 @@ from dippa.analysis import Analysis, FitConfig, Pattern
 from dippa.fitting import PatternFitResult
 from dippa.profiles import PeakParams, evaluate_pattern
 from dippa.structure import Phase, bind_reflections, reciprocal_g
-
-matplotlib.use("Agg")
-
 
 def _analysis() -> Analysis:
     phase = Phase("FCC", a=3.6)
@@ -74,6 +70,8 @@ def test_analysis_fit_delegates_and_retains_result():
 
 
 def test_plot_peak_shades_exact_fit_window():
+    matplotlib = pytest.importorskip("matplotlib")
+    matplotlib.use("Agg")
     analysis = _analysis()
     _, ax = analysis.plot_peak(0)
     display_vertices = ax.patches[0].get_transform().transform(ax.patches[0].get_path().vertices)

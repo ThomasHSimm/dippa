@@ -32,10 +32,11 @@ was actually produced — it reflects the GUI's state at whatever time that
 file was last written, which is not necessarily fit time. The bundled
 reference fit used here has ``alpha2 == 0`` in its ``genset.mat``, which
 would imply "fit the doublet" — but the fit only reproduces the real pattern
-(R² = 0.994) when no doublet is applied. Its provenance now explains why:
-this is SS316 neutron data (phase id ``Steel_Neutron``, a = 3.6 Å), so no
-X-ray Kα doublet applies. Trust measurement provenance and the reconstructed
-fit, not stale settings metadata, when they disagree.
+(R² = 0.994) when no doublet is applied. That fixture is consistent with
+neutron provenance (phase id ``Steel_Neutron``, a = 3.6 Å, with g extending
+beyond Co Kα reach). The separate ``SSnew_interpBCG_fit.mat`` is Co lab XRD
+and verifies the doublet path against real data. Trust measurement provenance
+and the reconstructed fit, not stale settings metadata, when they disagree.
 
 Coordinate convention (made explicit after review — see ``AUDIT.md`` §13):
 ``x`` is the diffraction-vector magnitude **g = 2 sin θ / λ = 1/d, in
@@ -67,6 +68,14 @@ TUBE_WAVELENGTHS: dict[str, tuple[float, float]] = {
     "Co": (1.78897, 1.79285),
     "Fe": (1.93604, 1.93998),
 }
+
+
+def _validate_widths(*widths: float) -> None:
+    values = np.asarray(widths, dtype=np.float64)
+    if not np.all(np.isfinite(values)) or np.any(values <= 0):
+        label = "fwhm" if len(values) == 1 else "fwhm values"
+        shown: float | list[float] = float(values[0]) if len(values) == 1 else values.tolist()
+        raise ValueError(f"{label} must be finite and positive, got {shown}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,6 +130,7 @@ def pseudo_voigt(x: FloatArray, x0: float, amplitude: float, fwhm: float, eta: f
     pure Gaussian, 1 = pure Lorentzian); the original GUI allows it up to
     1.2 ("super-Lorentzian"), which this function does not forbid either.
     """
+    _validate_widths(fwhm)
     delx = x - x0
     gau = np.exp(-((delx / (0.600561 * fwhm)) ** 2))
     lor = 1.0 + (delx / (0.5 * fwhm)) ** 2
@@ -143,6 +153,7 @@ def asymmetric_pseudo_voigt(
     between which side uses which named parameter is intentional and
     confirmed against the reference fit, not a typo.
     """
+    _validate_widths(fwhm_right, fwhm_left)
     delx = x - x0
     out = np.empty_like(x, dtype=np.float64)
     left = delx < 0

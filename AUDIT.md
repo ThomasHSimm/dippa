@@ -234,11 +234,14 @@ This is now pinned by `test_parity_with_doublet_is_much_worse` in
 `tests/test_profiles.py`, specifically so a future "fix" back to trusting
 `genset.mat` can't silently regress this.
 
-**Mystery closed (2026-07-20):** the reference pattern is SS316 **neutron**
-data, identified by the original phase id `Steel_Neutron` with `a = 3.6` Å.
-It therefore cannot have an X-ray Kα1/Kα2 doublet: `tube=None` is required
-by the measurement provenance, while the adjacent `instr`/`alpha2` settings
-are stale metadata rather than evidence about this saved fit.
+**Provenance correction (2026-07-20):** the small `reference_{fit,data}.mat`
+forward-model fixture is consistent with neutron provenance (phase id
+`Steel_Neutron`, `a = 3.6` Å, and a g range beyond Co Kα reach), and adding
+the doublet degrades its fit. `SSnew_interpBCG_fit.mat` is a separate SS316
+**Co lab-XRD** dataset: sample 0 gives R² ≈ 0.999 with `tube="Co"` versus
+≈ 0.847 with `tube=None`, providing the doublet path's first verification
+against real data. The earlier statement conflating SSnew with the neutron
+fixture was wrong.
 
 This also settles part of audit question 1 from §7 of this document
 (`onepeak.m` vs `pv_tv_aa.m`): plotting (`pv_tv_aa.m`) is now confirmed
@@ -571,7 +574,9 @@ The implemented path is traced directly through `Hsq.m`, `getFW_IB.m`,
 - `getWH.m` contains exactly three model branches: mwhA, mwhB, and mwhC.
   There is no plain-WH branch and no three-term model in that source.
   Classical WH is a documented Python extension using the mwhA path with
-  q fixed to zero.
+  q fixed to zero. Its default presentation now restricts the regression
+  to one equal-H² family (111/222 for the standard FCC set); an explicit
+  all-peaks mode remains available.
 - `dippa_fitWH.m` contains four optimisation backends across its switches:
   `lsqcurvefit`, `patternsearch`, a genetic algorithm, and simulated
   annealing. This port implements one backend (`scipy.optimize.least_squares`)
@@ -579,6 +584,11 @@ The implemented path is traced directly through `Hsq.m`, `getFW_IB.m`,
   boundary warnings, and explicit low-DoF warnings. The original GUI's
   second-phase selection path is not ported; one explicit phase/reflection
   list is fitted at a time.
+- `startup_WHpref.m` supplies the original size and strain bounds:
+  `(-0.001, 0.003)` and `(0, 0.01)`, respectively. The negative size lower
+  bound is deliberate provenance, not a typo. They are the Python defaults,
+  may be overridden explicitly, and lower/upper hits are structured fields
+  on `WilliamsonHallResult` rather than warning text alone.
 
 `4. RES/Fourier/SS316_logINDI_RES.mat` provides an exact independent
 contrast-factor oracle. `FCres_set(1)` is a WA-track result
@@ -596,6 +606,9 @@ Its tables, trends, confidence intervals, and plots are computed at runtime.
 The low-SNR half-percent sample demonstrates both safety policies: (111) is
 excluded for nonpositive corrected breadth and (311)/(222) for eta bound
 hits, leaving two retained points and therefore no three-parameter mWH fit.
+The fitter itself now raises the diagnostic
+`insufficient clean peaks (2 of 5 after exclusions)` and includes all three
+per-peak exclusion reasons; notebook 04 executes and asserts this path.
 
 ## 20. Phase schema, reflection binding, and HCP structure trace (2026-07-19)
 

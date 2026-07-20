@@ -102,6 +102,16 @@ def test_wrong_parameter_count_raises():
         evaluate_peak(x, np.array([0.5, 1.0, 0.01]), tube=None)
 
 
+def test_zero_width_matlab_placeholder_raises_before_division():
+    """SSnew stores unused peak columns with this zero-width parameter shape."""
+    x = np.linspace(0.4, 0.6, 10)
+    offending = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    with pytest.raises(ValueError, match="fwhm values must be finite and positive"):
+        evaluate_peak(x, offending, tube="Co")
+    with pytest.raises(ValueError, match="fwhm must be finite and positive"):
+        pseudo_voigt(x, 0.5, 1.0, 0.0, 0.5)
+
+
 def test_evaluate_pattern_background_only_with_zero_peaks():
     x = np.linspace(0, 1, 100)
     aa = np.array([[0.1], [0.2], [-0.05], [0.0], [0.0], [0.0]])  # 0 peaks, background only

@@ -28,6 +28,7 @@ from dippa.structure import ReflectionBinding
 
 FloatArray = NDArray[np.float64]
 Variant = Literal["classical", "mwhA", "mwhB", "mwhC"]
+ClassicalMode = Literal["family", "all"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,6 +55,7 @@ class WilliamsonHallResult:
     confidence_intervals: WHConfidenceIntervals
     residuals: FloatArray
     fitted_delta_k: FloatArray
+    delta_k: FloatArray
     x: FloatArray
     contrast: FloatArray
     n_points: int
@@ -62,6 +64,9 @@ class WilliamsonHallResult:
     excluded_peaks: tuple[ExcludedPeak, ...]
     success: bool
     message: str
+    at_lower_bound: tuple[str, ...]
+    at_upper_bound: tuple[str, ...]
+    classical_mode: ClassicalMode
 
 
 def _model_from_x(x: FloatArray, size: float, strain: float, variant: Variant) -> FloatArray:
@@ -122,15 +127,30 @@ def fit_williamson_hall(
     variant: Variant = "mwhA",
     initial: tuple[float, float, float] | None = None,
     q_bounds: tuple[float, float] | None = None,
+    size_bounds: tuple[float, float] = (-0.001, 0.003),
+    strain_bounds: tuple[float, float] = (0.0, 0.01),
+    classical_mode: ClassicalMode = "family",
 ) -> WilliamsonHallResult:
     """Fit q, size and strain jointly, or size/strain with q=0 classically.
 
     The validated binding is alongside the original peak array: retained
     peaks are selected using ``breadths.sample_peak_indices``. Reflections
-    are never inferred inside the fit.
+    are never inferred inside the fit. The size and strain defaults are the
+    bounds stored by the original ``startup_WHpref.m`` WH preferences;
+    notably, the negative size lower bound is deliberate and retained for
+    parity rather than replaced with a positivity assumption.
+
+    Classical presentation defaults to one equal-H² reflection family
+    (for the standard FCC set, 111/222). Set ``classical_mode="all"`` to
+    reproduce the conventional regression across every retained peak.
     """
     if variant not in {"classical", "mwhA", "mwhB", "mwhC"}:
         raise ValueError(f"unknown Williamson-Hall variant: {variant!r}")
+    if classical_mode not in {"family", "all"}:
+        raise ValueError("classical_mode must be 'family' or 'all'")
+    for name, bounds in (("size_bounds", size_bounds), ("strain_bounds", strain_bounds)):
+        if len(bounds) != 2 or not np.all(np.isfinite(bounds)) or bounds[0] >= bounds[1]:
+            raise ValueError(f"{name} must be two finite increasing values")
     indices = breadths.sample_peak_indices
     if len(binding.assignments) <= int(indices.max(initial=-1)):
         raise ValueError("binding must include an explicit reflection for every input peak")
@@ -140,13 +160,41 @@ def fit_williamson_hall(
         raise ValueError("breadth positions do not match the validated reflection binding")
     selected_binding = binding.select(indices)
     h2 = h_squared(selected_binding.reflections)
+    selected_delta_k = breadths.delta_k
+    if variant == "classical" and classical_mode == "family":
+        family_values: list[float] = []
+        families: list[NDArray[np.int64]] = []
+        for value in h2:
+            if not any(np.isclose(value, known, rtol=0.0, atol=1e-12) for known in family_values):
+                family_values.append(float(value))
+                families.append(
+                    np.flatnonzero(np.isclose(h2, value, rtol=0.0, atol=1e-12)).astype(np.int64)
+                )
+        family = max(families, key=lambda item: (len(item), -int(item[0])))
+        selected_binding = selected_binding.select(family)
+        selected_delta_k = selected_delta_k[family]
+        h2 = h2[family]
     n_parameters = 2 if variant == "classical" else 3
-    n_points = len(breadths.delta_k)
+    n_points = len(selected_delta_k)
     if n_points < n_parameters:
-        raise ValueError(f"need at least {n_parameters} retained peaks, got {n_points}")
+        reasons = "; ".join(
+            f"peak {item.peak_index}: {', '.join(item.reasons)}"
+            for item in breadths.excluded_peaks
+        )
+        message = (
+            f"insufficient clean peaks ({n_points} of {len(binding.assignments)} after exclusions); "
+            f"need {n_parameters} free parameters"
+        )
+        if reasons:
+            message += f"; exclusions: {reasons}"
+        raise ValueError(message)
 
     if initial is None:
-        initial = (min(2.0, 0.5 / max(float(h2.max()), 1e-12)), float(breadths.delta_k.min()), 0.01)
+        initial = (
+            min(2.0, 0.5 / max(float(h2.max()), 1e-12)),
+            float(selected_delta_k.min()),
+            0.5 * (strain_bounds[0] + strain_bounds[1]),
+        )
     q_initial, size_initial, strain_initial = (float(value) for value in initial)
     if q_bounds is None:
         positive_h2 = h2[h2 > 0]
@@ -154,17 +202,17 @@ def fit_williamson_hall(
         q_bounds = (-100.0, upper)
 
     if variant == "classical":
-        p0 = np.maximum([size_initial, strain_initial], 1e-12)
-        lower = np.array([0.0, 0.0])
-        upper = np.array([np.inf, np.inf])
+        lower = np.array([size_bounds[0], strain_bounds[0]])
+        upper = np.array([size_bounds[1], strain_bounds[1]])
+        p0 = np.clip([size_initial, strain_initial], lower, upper)
 
         def unpack(values: FloatArray) -> WHParameters:
             return WHParameters(0.0, float(values[0]), float(values[1]))
 
     else:
-        p0 = np.array([q_initial, max(size_initial, 1e-12), max(strain_initial, 1e-12)])
-        lower = np.array([q_bounds[0], 0.0, 0.0])
-        upper = np.array([q_bounds[1], np.inf, np.inf])
+        p0 = np.array([q_initial, size_initial, strain_initial])
+        lower = np.array([q_bounds[0], size_bounds[0], strain_bounds[0]])
+        upper = np.array([q_bounds[1], size_bounds[1], strain_bounds[1]])
         p0 = np.clip(p0, lower, upper)
 
         def unpack(values: FloatArray) -> WHParameters:
@@ -174,17 +222,17 @@ def fit_williamson_hall(
         parameters = unpack(values)
         return (
             williamson_hall_model(
-                breadths.positions, selected_binding, ch00, parameters, variant
+                selected_binding.positions, selected_binding, ch00, parameters, variant
             )
-            - breadths.delta_k
+            - selected_delta_k
         )
 
     fit = scipy.optimize.least_squares(residuals, p0, bounds=(lower, upper))
     parameters = unpack(fit.x)
     fitted = williamson_hall_model(
-        breadths.positions, selected_binding, ch00, parameters, variant
+        selected_binding.positions, selected_binding, ch00, parameters, variant
     )
-    residual = fitted - breadths.delta_k
+    residual = fitted - selected_delta_k
     dof = n_points - n_parameters
     messages: list[str] = list(breadths.policy_messages)
     if dof <= 2:
@@ -225,7 +273,7 @@ def fit_williamson_hall(
     contrast = contrast_cubic(
         selected_binding, ch00=ch00, q=0.0 if variant == "classical" else parameters.q
     )
-    x = breadths.positions * np.sqrt(contrast)
+    x = selected_binding.positions * np.sqrt(contrast)
     return WilliamsonHallResult(
         variant=variant,
         parameters=parameters,
@@ -233,6 +281,7 @@ def fit_williamson_hall(
         confidence_intervals=intervals,
         residuals=residual,
         fitted_delta_k=fitted,
+        delta_k=selected_delta_k.copy(),
         x=x,
         contrast=contrast,
         n_points=n_points,
@@ -241,4 +290,7 @@ def fit_williamson_hall(
         excluded_peaks=breadths.excluded_peaks,
         success=bool(fit.success),
         message=str(fit.message),
+        at_lower_bound=tuple(at_lower),
+        at_upper_bound=tuple(at_upper),
+        classical_mode=classical_mode,
     )
