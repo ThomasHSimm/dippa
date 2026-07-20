@@ -72,6 +72,12 @@ def test_model_rejects_coordinates_that_do_not_match_binding():
         williamson_hall_model(G + 0.01, BINDING, 0.317, parameters, "mwhA")
 
 
+def test_model_rejects_nonpositive_contrast():
+    parameters = WHParameters(q=3.0, size=0.001, strain=0.004)
+    with pytest.raises(ValueError, match="contrast factors must be positive"):
+        williamson_hall_model(G, BINDING, 0.317, parameters, "mwhA")
+
+
 def test_low_dof_and_exclusions_are_reported():
     parameters = WHParameters(q=1.5, size=0.001, strain=0.004)
     binding = bind_reflections(G[:5], PHASE, HKL[:5], tol=1e-12)
@@ -111,6 +117,32 @@ def test_custom_bounds_and_structured_bound_hits():
     )
     assert "size" in result.at_upper_bound
     assert result.at_lower_bound == ()
+
+
+def test_explicit_edge_screw_bounds_report_screw_fraction():
+    parameters = WHParameters(q=1.924, size=0.001, strain=0.004)
+    binding = BINDING.select(range(5))
+    exact = williamson_hall_model(G[:5], binding, 0.317, parameters, "mwhA")
+    result = fit_williamson_hall(
+        _breadths(exact),
+        BINDING,
+        0.317,
+        variant="mwhA",
+        q_bounds=(1.515, 2.333),
+    )
+    expected = (result.parameters.q - 1.515) / (2.333 - 1.515)
+    assert result.screw_fraction == pytest.approx(expected)
+    assert 0.0 <= result.screw_fraction <= 1.0
+
+
+def test_invalid_q_bounds_raise():
+    with pytest.raises(ValueError, match="q_bounds must be two finite increasing values"):
+        fit_williamson_hall(
+            _breadths([0.001, 0.002, 0.003]),
+            BINDING,
+            0.317,
+            q_bounds=(2.5, 1.5),
+        )
 
 
 def test_insufficient_clean_peaks_reports_all_exclusion_reasons():

@@ -597,18 +597,21 @@ only for contrast parity. It stores `chk0 = 0.317`,
 `q = 2.7131932196981099`, and the five C values for
 (111)/(200)/(220)/(311)/(222), all reproduced by `contrast_cubic` to
 floating-point precision. The same saved preferences record
-`qscrew = 2.47` and `qedge = 1.718`; those provenance values are not used
-as fitted-q truth in tests or the nickel demonstration.
+`qscrew = 2.47` and `qedge = 1.718`; those values define the austenite
+range, not the nickel demonstration's range. The nickel WH result/preferences
+give `qedge = 1.515`, `qscrew = 2.333`, and `ch00 = 0.284`. Notebook 04
+passes these nickel values explicitly rather than making a material preset a
+generic fitter default. With explicit `(qedge, qscrew)` bounds, the result
+reports `(q-qedge)/(qscrew-qedge)` as the screw fraction.
 
 `notebooks/04_williamson_hall.ipynb` executes the complete nine-sample
 nickel path with integral breadth and each sample's stored instrumental fit.
 Its tables, trends, confidence intervals, and plots are computed at runtime.
-The low-SNR half-percent sample demonstrates both safety policies: (111) is
-excluded for nonpositive corrected breadth and (311)/(222) for eta bound
-hits, leaving two retained points and therefore no three-parameter mWH fit.
-The fitter itself now raises the diagnostic
-`insufficient clean peaks (2 of 5 after exclusions)` and includes all three
-per-peak exclusion reasons; notebook 04 executes and asserts this path.
+The notebook deliberately uses `include_flagged=True` as a sensitivity view,
+so bound-flagged peaks remain; nonpositive corrected breadths are still
+excluded. The strict insufficient-clean-peaks behaviour remains tested in
+`tests/test_williamson_hall.py`, rather than asserted in this permissive
+walkthrough.
 
 ## 20. Phase schema, reflection binding, and HCP structure trace (2026-07-19)
 

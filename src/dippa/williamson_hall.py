@@ -67,6 +67,7 @@ class WilliamsonHallResult:
     at_lower_bound: tuple[str, ...]
     at_upper_bound: tuple[str, ...]
     classical_mode: ClassicalMode
+    screw_fraction: float | None
 
 
 def _model_from_x(x: FloatArray, size: float, strain: float, variant: Variant) -> FloatArray:
@@ -143,6 +144,9 @@ def fit_williamson_hall(
     Classical presentation defaults to one equal-H² reflection family
     (for the standard FCC set, 111/222). Set ``classical_mode="all"`` to
     reproduce the conventional regression across every retained peak.
+    When ``q_bounds`` are explicit material ``(q_edge, q_screw)`` values,
+    ``result.screw_fraction`` reports the fitted position between them.
+    Material presets intentionally live at the calling layer, not here.
     """
     if variant not in {"classical", "mwhA", "mwhB", "mwhC"}:
         raise ValueError(f"unknown Williamson-Hall variant: {variant!r}")
@@ -196,10 +200,13 @@ def fit_williamson_hall(
             0.5 * (strain_bounds[0] + strain_bounds[1]),
         )
     q_initial, size_initial, strain_initial = (float(value) for value in initial)
+    explicit_q_bounds = q_bounds is not None
     if q_bounds is None:
         positive_h2 = h2[h2 > 0]
         upper = 0.999999 / float(positive_h2.max()) if positive_h2.size else 100.0
         q_bounds = (-100.0, upper)
+    elif len(q_bounds) != 2 or not np.all(np.isfinite(q_bounds)) or q_bounds[0] >= q_bounds[1]:
+        raise ValueError("q_bounds must be two finite increasing values")
 
     if variant == "classical":
         lower = np.array([size_bounds[0], strain_bounds[0]])
@@ -274,6 +281,11 @@ def fit_williamson_hall(
         selected_binding, ch00=ch00, q=0.0 if variant == "classical" else parameters.q
     )
     x = selected_binding.positions * np.sqrt(contrast)
+    screw_fraction = (
+        None
+        if variant == "classical" or not explicit_q_bounds
+        else float((parameters.q - q_bounds[0]) / (q_bounds[1] - q_bounds[0]))
+    )
     return WilliamsonHallResult(
         variant=variant,
         parameters=parameters,
@@ -293,4 +305,5 @@ def fit_williamson_hall(
         at_lower_bound=tuple(at_lower),
         at_upper_bound=tuple(at_upper),
         classical_mode=classical_mode,
+        screw_fraction=screw_fraction,
     )
