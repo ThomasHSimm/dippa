@@ -234,6 +234,12 @@ This is now pinned by `test_parity_with_doublet_is_much_worse` in
 `tests/test_profiles.py`, specifically so a future "fix" back to trusting
 `genset.mat` can't silently regress this.
 
+**Mystery closed (2026-07-20):** the reference pattern is SS316 **neutron**
+data, identified by the original phase id `Steel_Neutron` with `a = 3.6` Å.
+It therefore cannot have an X-ray Kα1/Kα2 doublet: `tube=None` is required
+by the measurement provenance, while the adjacent `instr`/`alpha2` settings
+are stale metadata rather than evidence about this saved fit.
+
 This also settles part of audit question 1 from §7 of this document
 (`onepeak.m` vs `pv_tv_aa.m`): plotting (`pv_tv_aa.m`) is now confirmed
 correct against real data. Whether `onepeak.m`'s fitting path uses

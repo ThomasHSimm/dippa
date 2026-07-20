@@ -32,8 +32,10 @@ was actually produced — it reflects the GUI's state at whatever time that
 file was last written, which is not necessarily fit time. The bundled
 reference fit used here has ``alpha2 == 0`` in its ``genset.mat``, which
 would imply "fit the doublet" — but the fit only reproduces the real pattern
-(R² = 0.994) when no doublet is applied. Trust the reconstructed fit, not
-the settings file, when the two disagree.
+(R² = 0.994) when no doublet is applied. Its provenance now explains why:
+this is SS316 neutron data (phase id ``Steel_Neutron``, a = 3.6 Å), so no
+X-ray Kα doublet applies. Trust measurement provenance and the reconstructed
+fit, not stale settings metadata, when they disagree.
 
 Coordinate convention (made explicit after review — see ``AUDIT.md`` §13):
 ``x`` is the diffraction-vector magnitude **g = 2 sin θ / λ = 1/d, in
@@ -65,6 +67,51 @@ TUBE_WAVELENGTHS: dict[str, tuple[float, float]] = {
     "Co": (1.78897, 1.79285),
     "Fe": (1.93604, 1.93998),
 }
+
+
+@dataclass(frozen=True, slots=True)
+class PeakParams:
+    """Named view of the canonical six-element asymmetric peak array."""
+
+    x0: float
+    amplitude: float
+    fwhm_right: float
+    eta_left: float
+    fwhm_left: float
+    eta_right: float
+
+    def __post_init__(self) -> None:
+        values = self.to_array()
+        if not np.all(np.isfinite(values)):
+            raise ValueError("peak parameters must all be finite")
+        if self.amplitude < 0:
+            raise ValueError("amplitude must be nonnegative")
+        if self.fwhm_right <= 0 or self.fwhm_left <= 0:
+            raise ValueError("fwhm values must be positive")
+        if not 0 <= self.eta_left <= 1.3 or not 0 <= self.eta_right <= 1.3:
+            raise ValueError("eta values must be between 0 and 1.3")
+
+    @classmethod
+    def from_array(cls, params: FloatArray) -> PeakParams:
+        """Build from the canonical asymmetric parameter order."""
+        values = np.asarray(params, dtype=np.float64)
+        if values.shape != (6,):
+            raise ValueError(f"expected 6 asymmetric peak parameters, got shape {values.shape}")
+        return cls(*(float(value) for value in values))
+
+    def to_array(self) -> FloatArray:
+        """Return a new array in the canonical original-tool order."""
+        return np.array(
+            [
+                self.x0,
+                self.amplitude,
+                self.fwhm_right,
+                self.eta_left,
+                self.fwhm_left,
+                self.eta_right,
+            ],
+            dtype=np.float64,
+        )
 
 
 def pseudo_voigt(x: FloatArray, x0: float, amplitude: float, fwhm: float, eta: float) -> FloatArray:
@@ -125,7 +172,9 @@ def _single_component(x: FloatArray, params: FloatArray) -> FloatArray:
     )
 
 
-def evaluate_peak(x: FloatArray, params: FloatArray, tube: str | None = None) -> FloatArray:
+def evaluate_peak(
+    x: FloatArray, params: FloatArray | PeakParams, tube: str | None = None
+) -> FloatArray:
     """Evaluate one peak: a single pseudo-Voigt, or a Kα1/Kα2 doublet if ``tube`` is given.
 
     ``params`` is a length-4 (symmetric) or length-6 (asymmetric) array, using
@@ -134,18 +183,19 @@ def evaluate_peak(x: FloatArray, params: FloatArray, tube: str | None = None) ->
     ``x0 * (lambda_alpha2 - lambda_alpha1) / mean(lambda_alpha1, lambda_alpha2)``
     beyond ``x0``, matching ``pk_alpha.m`` / ``pk_alpha_asymm.m`` exactly.
     """
-    f1 = _single_component(x, params)
+    params_array = params.to_array() if isinstance(params, PeakParams) else np.asarray(params)
+    f1 = _single_component(x, params_array)
     if tube is None:
         return f1
     if tube not in TUBE_WAVELENGTHS:
         raise ValueError(f"unsupported tube {tube!r}; supported: {sorted(TUBE_WAVELENGTHS)}")
     lam1, lam2 = TUBE_WAVELENGTHS[tube]
     wavelen = (lam1 + lam2) / 2.0
-    alphadiff = params[0] * (lam2 - lam1) / wavelen
+    alphadiff = params_array[0] * (lam2 - lam1) / wavelen
 
-    params2 = params.copy()
-    params2[0] = params[0] + alphadiff
-    params2[1] = 0.5 * params[1]
+    params2 = params_array.copy()
+    params2[0] = params_array[0] + alphadiff
+    params2[1] = 0.5 * params_array[1]
     f2 = _single_component(x, params2)
     return f1 + f2
 

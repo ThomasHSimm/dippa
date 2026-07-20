@@ -48,14 +48,20 @@ from dippa.regrid import (
     regrid_to_g,
     theta_to_g,
 )
+from dippa.analysis import Analysis, FitConfig, Pattern
+from dippa.profiles import PeakParams
 
 __version__ = "0.0.1.dev0"
 
 __all__ = [
     "DeltaKResult",
+    "Analysis",
+    "FitConfig",
     "ExcludedPeak",
     "LatticeRefinementResult",
     "Phase",
+    "Pattern",
+    "PeakParams",
     "WHConfidenceIntervals",
     "WHParameters",
     "WilliamsonHallResult",
